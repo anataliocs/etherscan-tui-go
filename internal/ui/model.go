@@ -7,6 +7,7 @@ import (
 	"awesomeProject/internal/etherscan"
 	"github.com/charmbracelet/bubbles/textinput"
 	tea "github.com/charmbracelet/bubbletea"
+	"github.com/charmbracelet/lipgloss"
 )
 
 type sessionState int
@@ -113,7 +114,7 @@ func (m Model) View() string {
 			"Network: "+networkToggle,
 			"Enter transaction hash:",
 			m.textInput.View(),
-		) + helpStyle.Render("\n\npress tab to switch network • enter to search • esc to quit")
+		) + helpStyle.Render("\n\n(tab) switch network • (enter) search • (esc) quit")
 	case loadingState:
 		s = fmt.Sprintf("\n  Searching for %s...\n", m.textInput.Value())
 	case resultState:
@@ -136,26 +137,60 @@ func renderTransaction(tx *etherscan.Transaction) string {
 	items := []struct {
 		label string
 		value string
+		style lipgloss.Style
 	}{
-		{"Hash", tx.Hash},
-		{"Block Number", tx.BlockNumber},
-		{"From", tx.From},
-		{"To", tx.To},
-		{"Value", tx.Value},
-		{"Gas", tx.Gas},
-		{"Gas Price", tx.GasPrice},
-		{"Nonce", tx.Nonce},
-		{"Tx Index", tx.TransactionIndex},
+		{"Hash", tx.Hash, valueStyle},
+		{"Status", formatStatus(tx.Status), getStatusStyle(tx.Status)},
+		{"Block Number", tx.BlockNumber, valueStyle},
+		{"From", tx.From, valueStyle},
+		{"To", tx.To, valueStyle},
+		{"Value", tx.Value, valueStyle},
+		{"Gas", tx.Gas, valueStyle},
+		{"Gas Price", tx.GasPrice, valueStyle},
+		{"Nonce", tx.Nonce, valueStyle},
+		{"Tx Index", tx.TransactionIndex, valueStyle},
 	}
 
 	for _, item := range items {
 		if item.value == "" {
 			item.value = "n/a"
 		}
-		b.WriteString(labelStyle.Render(item.label+":") + " " + valueStyle.Render(item.value) + "\n")
+		b.WriteString(labelStyle.Render(item.label+":") + " " + item.style.Render(item.value) + "\n")
 	}
 
 	return b.String()
+}
+
+func formatStatus(status string) string {
+	switch strings.ToLower(status) {
+	case "success":
+		return "✔ success"
+	case "failed":
+		return "✘ failed"
+	case "pending":
+		return "Pending"
+	case "dropped":
+		return "dropped"
+	case "replaced":
+		return "replaced"
+	default:
+		return status
+	}
+}
+
+func getStatusStyle(status string) lipgloss.Style {
+	switch strings.ToLower(status) {
+	case "success":
+		return successStyle
+	case "failed":
+		return failedStyle
+	case "pending":
+		return pendingStyle
+	case "dropped", "replaced":
+		return droppedStyle
+	default:
+		return valueStyle
+	}
 }
 
 func fetchTransactionCmd(hash string, client *etherscan.Client) tea.Cmd {

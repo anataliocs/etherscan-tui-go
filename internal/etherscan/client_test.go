@@ -144,3 +144,49 @@ func TestFetchTransaction_Success(t *testing.T) {
 		t.Errorf("Expected hash 0x123, got %s", tx.Hash)
 	}
 }
+
+func TestFetchTransactionReceipt(t *testing.T) {
+	tests := []struct {
+		name           string
+		responseBody   string
+		expectedStatus string
+	}{
+		{
+			name:           "Success",
+			responseBody:   `{"jsonrpc":"2.0","id":1,"result":{"status":"0x1"}}`,
+			expectedStatus: "success",
+		},
+		{
+			name:           "Failed",
+			responseBody:   `{"jsonrpc":"2.0","id":1,"result":{"status":"0x0"}}`,
+			expectedStatus: "failed",
+		},
+		{
+			name:           "Pending",
+			responseBody:   `{"jsonrpc":"2.0","id":1,"result":null}`,
+			expectedStatus: "Pending",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				w.Header().Set("Content-Type", "application/json")
+				w.Write([]byte(tt.responseBody))
+			}))
+			defer server.Close()
+
+			client := NewClient("test-api-key")
+			client.baseURL = server.URL
+
+			status, err := client.FetchTransactionReceipt("0xabc")
+			if err != nil {
+				t.Fatalf("Unexpected error: %v", err)
+			}
+
+			if status != tt.expectedStatus {
+				t.Errorf("Expected status '%s', got '%s'", tt.expectedStatus, status)
+			}
+		})
+	}
+}

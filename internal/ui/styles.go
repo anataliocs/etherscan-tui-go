@@ -30,4 +30,16 @@ var (
 	helpStyle = lipgloss.NewStyle().
 			Foreground(lipgloss.Color("#626262")).
 			MarginTop(1)
+
+	pendingStyle = lipgloss.NewStyle().
+			Foreground(lipgloss.Color("#FFFF00"))
+
+	successStyle = lipgloss.NewStyle().
+			Foreground(lipgloss.Color("#00FF00"))
+
+	failedStyle = lipgloss.NewStyle().
+			Foreground(lipgloss.Color("#FF0000"))
+
+	droppedStyle = lipgloss.NewStyle().
+			Foreground(lipgloss.Color("#800080"))
 )

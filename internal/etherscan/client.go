@@ -21,6 +21,7 @@ type Transaction struct {
 	Nonce            string `json:"nonce"`
 	TransactionIndex string `json:"transactionIndex"`
 	Input            string `json:"input"`
+	Status           string `json:"status"` // "Pending", "success", "failed", "dropped", "replaced"
 }
 
 type Client struct {
@@ -102,5 +103,56 @@ func (c *Client) FetchTransaction(hash string) (*Transaction, error) {
 		return nil, fmt.Errorf("unexpected response format for result: %w", err)
 	}
 
+	status, _ := c.FetchTransactionReceipt(hash)
+	tx.Status = status
+
 	return &tx, nil
+}
+
+func (c *Client) FetchTransactionReceipt(hash string) (string, error) {
+	if c.apiKey == "" {
+		return "", errors.New("ETHERSCAN_API_KEY environment variable is not set")
+	}
+
+	url := fmt.Sprintf("%s?chainid=%d&module=proxy&action=eth_getTransactionReceipt&txhash=%s&apikey=%s", c.baseURL, c.chainId, hash, c.apiKey)
+
+	resp, err := c.http.Get(url)
+	if err != nil {
+		return "", err
+	}
+	defer resp.Body.Close()
+
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return "", err
+	}
+
+	var proxyResp struct {
+		Result struct {
+			Status string `json:"status"`
+		} `json:"result"`
+		Error *struct {
+			Message string `json:"message"`
+		} `json:"error"`
+	}
+
+	if err := json.Unmarshal(body, &proxyResp); err != nil {
+		return "", fmt.Errorf("failed to decode response: %w", err)
+	}
+
+	if proxyResp.Error != nil {
+		return "", errors.New(proxyResp.Error.Message)
+	}
+
+	if string(body) == `{"result":null}` || string(body) == `{"result": null}` {
+		return "Pending", nil
+	}
+
+	if proxyResp.Result.Status == "0x1" {
+		return "success", nil
+	} else if proxyResp.Result.Status == "0x0" {
+		return "failed", nil
+	}
+
+	return "Pending", nil
 }
