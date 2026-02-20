@@ -21,6 +21,11 @@ func TestFetchTransaction_MockAPI(t *testing.T) {
 			expectedHash: "0x123",
 		},
 		{
+			name:         "Success With Timestamp",
+			responseBody: `{"jsonrpc":"2.0","id":1,"result":{"hash":"0x456","blockNumber":"0x2"}}`,
+			expectedHash: "0x456",
+		},
+		{
 			name:         "Rate Limit Error (String Result)",
 			responseBody: `{"jsonrpc":"2.0","id":1,"result":"Max rate limit reached"}`,
 			expectedErr:  "Etherscan API error: Max rate limit reached",
@@ -56,6 +61,20 @@ func TestFetchTransaction_MockAPI(t *testing.T) {
 			// Actually, we can't easily disable it without more refactoring or conditional compilation,
 			// but 500ms per test case is acceptable for now.
 
+			if tt.name == "Success With Timestamp" {
+				// Mock the block timestamp request
+				server.Config.Handler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+					w.Header().Set("Content-Type", "application/json")
+					if strings.Contains(r.URL.RawQuery, "eth_getTransactionByHash") {
+						w.Write([]byte(tt.responseBody))
+					} else if strings.Contains(r.URL.RawQuery, "eth_getBlockByNumber") {
+						w.Write([]byte(`{"jsonrpc":"2.0","id":1,"result":{"timestamp":"0x65d507c0"}}`)) // 2024-02-20T20:12:48Z
+					} else if strings.Contains(r.URL.RawQuery, "eth_getTransactionReceipt") {
+						w.Write([]byte(`{"jsonrpc":"2.0","id":1,"result":{"status":"0x1"}}`))
+					}
+				})
+			}
+
 			tx, err := client.FetchTransaction("0xabc")
 
 			if tt.expectedErr != "" {
@@ -74,6 +93,13 @@ func TestFetchTransaction_MockAPI(t *testing.T) {
 
 			if tx.Hash != tt.expectedHash {
 				t.Errorf("Expected hash '%s', got '%s'", tt.expectedHash, tx.Hash)
+			}
+
+			if tt.name == "Success With Timestamp" {
+				expectedTimestamp := "2024-02-20T20:12:48Z"
+				if tx.Timestamp != expectedTimestamp {
+					t.Errorf("Expected timestamp '%s', got '%s'", expectedTimestamp, tx.Timestamp)
+				}
 			}
 		})
 	}

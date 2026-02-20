@@ -141,6 +141,7 @@ func renderTransaction(tx *etherscan.Transaction) string {
 	}{
 		{"Hash", tx.Hash, valueStyle},
 		{"Status", formatStatus(tx.Status), getStatusStyle(tx.Status)},
+		{"Timestamp", tx.Timestamp, valueStyle},
 		{"Block Number", tx.BlockNumber, valueStyle},
 		{"From", tx.From, valueStyle},
 		{"To", tx.To, valueStyle},

@@ -21,7 +21,8 @@ type Transaction struct {
 	Nonce            string `json:"nonce"`
 	TransactionIndex string `json:"transactionIndex"`
 	Input            string `json:"input"`
-	Status           string `json:"status"` // "Pending", "success", "failed", "dropped", "replaced"
+	Status           string `json:"status"`             // "Pending", "success", "failed", "dropped", "replaced"
+	Timestamp        string `json:"timestamp,omitzero"` // ISO 8601 format
 }
 
 type Client struct {
@@ -106,7 +107,63 @@ func (c *Client) FetchTransaction(hash string) (*Transaction, error) {
 	status, _ := c.FetchTransactionReceipt(hash)
 	tx.Status = status
 
+	if tx.BlockNumber != "" && tx.BlockNumber != "0x0" {
+		timestamp, err := c.FetchBlockTimestamp(tx.BlockNumber)
+		if err == nil {
+			tx.Timestamp = timestamp
+		}
+	}
+
 	return &tx, nil
+}
+
+func (c *Client) FetchBlockTimestamp(blockNumber string) (string, error) {
+	if c.apiKey == "" {
+		return "", errors.New("ETHERSCAN_API_KEY environment variable is not set")
+	}
+
+	url := fmt.Sprintf("%s?chainid=%d&module=proxy&action=eth_getBlockByNumber&tag=%s&boolean=false&apikey=%s", c.baseURL, c.chainId, blockNumber, c.apiKey)
+
+	resp, err := c.http.Get(url)
+	if err != nil {
+		return "", err
+	}
+	defer resp.Body.Close()
+
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return "", err
+	}
+
+	var proxyResp struct {
+		Result struct {
+			Timestamp string `json:"timestamp"`
+		} `json:"result"`
+		Error *struct {
+			Message string `json:"message"`
+		} `json:"error"`
+	}
+
+	if err := json.Unmarshal(body, &proxyResp); err != nil {
+		return "", fmt.Errorf("failed to decode response: %w", err)
+	}
+
+	if proxyResp.Error != nil {
+		return "", errors.New(proxyResp.Error.Message)
+	}
+
+	if proxyResp.Result.Timestamp == "" {
+		return "", errors.New("timestamp not found in block")
+	}
+
+	// Parse hex timestamp
+	var unixTime int64
+	_, err = fmt.Sscanf(proxyResp.Result.Timestamp, "0x%x", &unixTime)
+	if err != nil {
+		return "", fmt.Errorf("failed to parse timestamp: %w", err)
+	}
+
+	return time.Unix(unixTime, 0).UTC().Format(time.RFC3339), nil
 }
 
 func (c *Client) FetchTransactionReceipt(hash string) (string, error) {
