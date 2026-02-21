@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"math/big"
 	"net/http"
 	"strings"
 	"time"
@@ -104,11 +105,22 @@ func (c *Client) FetchTransaction(hash string) (*Transaction, error) {
 		return nil, fmt.Errorf("unexpected response format for result: %w", err)
 	}
 
+	// Keep hex block number for timestamp fetching
+	hexBlockNumber := tx.BlockNumber
+
+	// Convert hex fields to decimal
+	tx.BlockNumber = hexToDecimal(tx.BlockNumber)
+	tx.Value = formatValue(tx.Value)
+	tx.Gas = hexToDecimal(tx.Gas)
+	tx.GasPrice = formatGasPrice(tx.GasPrice)
+	tx.Nonce = hexToDecimal(tx.Nonce)
+	tx.TransactionIndex = hexToDecimal(tx.TransactionIndex)
+
 	status, _ := c.FetchTransactionReceipt(hash)
 	tx.Status = status
 
-	if tx.BlockNumber != "" && tx.BlockNumber != "0x0" {
-		timestamp, err := c.FetchBlockTimestamp(tx.BlockNumber)
+	if hexBlockNumber != "" && hexBlockNumber != "0x0" {
+		timestamp, err := c.FetchBlockTimestamp(hexBlockNumber)
 		if err == nil {
 			tx.Timestamp = timestamp
 		}
@@ -212,4 +224,64 @@ func (c *Client) FetchTransactionReceipt(hash string) (string, error) {
 	}
 
 	return "Pending", nil
+}
+
+func formatValue(hexStr string) string {
+	eth, s, done := hexToFloat(hexStr, 1e18)
+	if done {
+		return s
+	}
+
+	return fmt.Sprintf("%s ETH", eth.Text('f', -1))
+}
+
+func hexToFloat(hexStr string, val float64) (*big.Float, string, bool) {
+	if hexStr == "" || !strings.HasPrefix(hexStr, "0x") {
+		return nil, hexStr, true
+	}
+
+	trimmed := strings.TrimPrefix(hexStr, "0x")
+	if trimmed == "" {
+		return nil, "0 ETH", true
+	}
+
+	bi := new(big.Int)
+	if _, ok := bi.SetString(trimmed, 16); !ok {
+		return nil, hexStr, true
+	}
+
+	// 1 ETH = 10^18 Wei
+	eth := new(big.Float).SetInt(bi)
+	eth.Quo(eth, big.NewFloat(val))
+	return eth, "", false
+}
+
+func formatGasPrice(hexStr string) string {
+	gwei, s, done := hexToFloat(hexStr, 1e9)
+	if done {
+		return s
+	}
+
+	eth, _, _ := hexToFloat(hexStr, 1e18)
+
+	return fmt.Sprintf("%s Gwei (%s ETH)", gwei.Text('f', -1), eth.Text('f', -1))
+}
+
+func hexToDecimal(hexStr string) string {
+	if hexStr == "" || !strings.HasPrefix(hexStr, "0x") {
+		return hexStr
+	}
+
+	trimmed := strings.TrimPrefix(hexStr, "0x")
+	if trimmed == "" {
+		return "0"
+	}
+
+	// Use big.Int as Ethereum values can exceed uint64 (e.g., Value in Wei)
+	bi := new(big.Int)
+	if _, ok := bi.SetString(trimmed, 16); !ok {
+		return hexStr
+	}
+
+	return bi.String()
 }

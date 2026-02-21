@@ -68,6 +68,11 @@ func TestFetchTransaction_MockAPI(t *testing.T) {
 					if strings.Contains(r.URL.RawQuery, "eth_getTransactionByHash") {
 						w.Write([]byte(tt.responseBody))
 					} else if strings.Contains(r.URL.RawQuery, "eth_getBlockByNumber") {
+						// Verify that tag is hex
+						if !strings.Contains(r.URL.RawQuery, "tag=0x") {
+							w.Write([]byte(`{"jsonrpc":"2.0","id":1,"error":{"message":"tag must be hex"}}`))
+							return
+						}
 						w.Write([]byte(`{"jsonrpc":"2.0","id":1,"result":{"timestamp":"0x65d507c0"}}`)) // 2024-02-20T20:12:48Z
 					} else if strings.Contains(r.URL.RawQuery, "eth_getTransactionReceipt") {
 						w.Write([]byte(`{"jsonrpc":"2.0","id":1,"result":{"status":"0x1"}}`))
@@ -95,6 +100,12 @@ func TestFetchTransaction_MockAPI(t *testing.T) {
 				t.Errorf("Expected hash '%s', got '%s'", tt.expectedHash, tx.Hash)
 			}
 
+			if tt.name == "Success" {
+				if tx.BlockNumber != "1" {
+					t.Errorf("Expected block number '1', got '%s'", tx.BlockNumber)
+				}
+			}
+
 			if tt.name == "Success With Timestamp" {
 				expectedTimestamp := "2024-02-20T20:12:48Z"
 				if tx.Timestamp != expectedTimestamp {
@@ -102,6 +113,48 @@ func TestFetchTransaction_MockAPI(t *testing.T) {
 				}
 			}
 		})
+	}
+}
+
+func TestFormatValue(t *testing.T) {
+	tests := []struct {
+		hex      string
+		expected string
+	}{
+		{"0xde0b6b3a7640000", "1 ETH"},   // 10^18
+		{"0x1bc16d674ec80000", "2 ETH"},  // 2 * 10^18
+		{"0x6f05b59d3b20000", "0.5 ETH"}, // 0.5 * 10^18
+		{"0x0", "0 ETH"},
+		{"", ""},
+		{"123", "123"},
+	}
+
+	for _, tt := range tests {
+		got := formatValue(tt.hex)
+		if got != tt.expected {
+			t.Errorf("formatValue(%s) = %s; want %s", tt.hex, got, tt.expected)
+		}
+	}
+}
+
+func TestFormatGasPrice(t *testing.T) {
+	tests := []struct {
+		hex      string
+		expected string
+	}{
+		{"0x3b9aca00", "1 Gwei (0.000000001 ETH)"},
+		{"0x77359400", "2 Gwei (0.000000002 ETH)"},
+		{"0x1dcd6500", "0.5 Gwei (0.0000000005 ETH)"},
+		{"0x0", "0 Gwei (0 ETH)"},
+		{"", ""},
+		{"123", "123"},
+	}
+
+	for _, tt := range tests {
+		got := formatGasPrice(tt.hex)
+		if got != tt.expected {
+			t.Errorf("formatGasPrice(%s) = %s; want %s", tt.hex, got, tt.expected)
+		}
 	}
 }
 

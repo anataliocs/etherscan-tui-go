@@ -42,4 +42,7 @@ var (
 
 	droppedStyle = lipgloss.NewStyle().
 			Foreground(lipgloss.Color("#800080"))
+
+	lightGrayStyle = lipgloss.NewStyle().
+			Foreground(lipgloss.Color("#888888"))
 )

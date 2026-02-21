@@ -156,7 +156,18 @@ func renderTransaction(tx *etherscan.Transaction) string {
 		if item.value == "" {
 			item.value = "n/a"
 		}
-		b.WriteString(labelStyle.Render(item.label+":") + " " + item.style.Render(item.value) + "\n")
+
+		var renderedValue string
+		if item.label == "Gas Price" && strings.Contains(item.value, "(") {
+			parts := strings.Split(item.value, " (")
+			gwei := parts[0]
+			eth := "(" + parts[1]
+			renderedValue = item.style.Render(gwei) + " " + lightGrayStyle.Render(eth)
+		} else {
+			renderedValue = item.style.Render(item.value)
+		}
+
+		b.WriteString(labelStyle.Render(item.label+":") + " " + renderedValue + "\n")
 	}
 
 	return b.String()
