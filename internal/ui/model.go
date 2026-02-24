@@ -178,6 +178,7 @@ func renderTransaction(tx *etherscan.Transaction) string {
 		{"Value", tx.Value, valueStyle},
 		{"Gas", tx.Gas, valueStyle},
 		{"Gas Price", tx.GasPrice, valueStyle},
+		{"Transaction Fee", tx.TransactionFee, valueStyle},
 		{"Nonce", tx.Nonce, valueStyle},
 		{"Tx Index", tx.TransactionIndex, valueStyle},
 	}

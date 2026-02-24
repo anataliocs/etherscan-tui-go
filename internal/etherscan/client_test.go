@@ -75,7 +75,7 @@ func TestFetchTransaction_MockAPI(t *testing.T) {
 						}
 						w.Write([]byte(`{"jsonrpc":"2.0","id":1,"result":{"timestamp":"0x65d507c0"}}`)) // 2024-02-20T20:12:48Z
 					} else if strings.Contains(r.URL.RawQuery, "eth_getTransactionReceipt") {
-						w.Write([]byte(`{"jsonrpc":"2.0","id":1,"result":{"status":"0x1"}}`))
+						w.Write([]byte(`{"jsonrpc":"2.0","id":1,"result":{"status":"0x1","gasUsed":"0x5208"}}`)) // 21000
 					}
 				})
 			}
@@ -158,6 +158,28 @@ func TestFormatGasPrice(t *testing.T) {
 	}
 }
 
+func TestFormatTransactionFee(t *testing.T) {
+	tests := []struct {
+		gasUsed  string
+		gasPrice string
+		expected string
+	}{
+		{"0x5208", "0x3b9aca00", "0.000021 ETH"}, // 21000 * 1 Gwei
+		{"0x5208", "0x77359400", "0.000042 ETH"}, // 21000 * 2 Gwei
+		{"0x0", "0x3b9aca00", "0 ETH"},
+		{"0x5208", "0x0", "0 ETH"},
+		{"", "0x3b9aca00", ""},
+		{"0x5208", "", ""},
+	}
+
+	for _, tt := range tests {
+		got := formatTransactionFee(tt.gasUsed, tt.gasPrice)
+		if got != tt.expected {
+			t.Errorf("formatTransactionFee(%s, %s) = %s; want %s", tt.gasUsed, tt.gasPrice, got, tt.expected)
+		}
+	}
+}
+
 func TestFetchTransaction_ResultAsString(t *testing.T) {
 	// This JSON simulates the case where 'result' is a string instead of an object.
 	// We want to make sure we handle it gracefully and don't fail with "json: cannot unmarshal string..."
@@ -232,12 +254,12 @@ func TestFetchTransactionReceipt(t *testing.T) {
 	}{
 		{
 			name:           "Success",
-			responseBody:   `{"jsonrpc":"2.0","id":1,"result":{"status":"0x1"}}`,
+			responseBody:   `{"jsonrpc":"2.0","id":1,"result":{"status":"0x1","gasUsed":"0x5208"}}`,
 			expectedStatus: "success",
 		},
 		{
 			name:           "Failed",
-			responseBody:   `{"jsonrpc":"2.0","id":1,"result":{"status":"0x0"}}`,
+			responseBody:   `{"jsonrpc":"2.0","id":1,"result":{"status":"0x0","gasUsed":"0x5208"}}`,
 			expectedStatus: "failed",
 		},
 		{
@@ -258,13 +280,19 @@ func TestFetchTransactionReceipt(t *testing.T) {
 			client := NewClient("test-api-key")
 			client.baseURL = server.URL
 
-			status, err := client.FetchTransactionReceipt("0xabc")
+			status, gasUsed, err := client.FetchTransactionReceipt("0xabc")
 			if err != nil {
 				t.Fatalf("Unexpected error: %v", err)
 			}
 
 			if status != tt.expectedStatus {
 				t.Errorf("Expected status '%s', got '%s'", tt.expectedStatus, status)
+			}
+			// In Success and Failed cases, we expect a value for gasUsed if provided in mock
+			if tt.name == "Success" || tt.name == "Failed" {
+				if gasUsed != "0x5208" {
+					t.Errorf("Expected gasUsed 0x5208, got %s", gasUsed)
+				}
 			}
 		})
 	}

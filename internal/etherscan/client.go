@@ -24,6 +24,8 @@ type Transaction struct {
 	Input            string `json:"input"`
 	Status           string `json:"status"`             // "Pending", "success", "failed", "dropped", "replaced"
 	Timestamp        string `json:"timestamp,omitzero"` // ISO 8601 format
+	GasUsed          string `json:"gasUsed"`
+	TransactionFee   string `json:"transactionFee"`
 }
 
 type Client struct {
@@ -108,6 +110,9 @@ func (c *Client) FetchTransaction(hash string) (*Transaction, error) {
 	// Keep hex block number for timestamp fetching
 	hexBlockNumber := tx.BlockNumber
 
+	// Keep hex fields for fee calculation
+	hexGasPrice := tx.GasPrice
+
 	// Convert hex fields to decimal
 	tx.BlockNumber = hexToDecimal(tx.BlockNumber)
 	tx.Value = formatValue(tx.Value)
@@ -116,8 +121,10 @@ func (c *Client) FetchTransaction(hash string) (*Transaction, error) {
 	tx.Nonce = hexToDecimal(tx.Nonce)
 	tx.TransactionIndex = hexToDecimal(tx.TransactionIndex)
 
-	status, _ := c.FetchTransactionReceipt(hash)
+	status, gasUsed, _ := c.FetchTransactionReceipt(hash)
 	tx.Status = status
+	tx.GasUsed = hexToDecimal(gasUsed)
+	tx.TransactionFee = formatTransactionFee(gasUsed, hexGasPrice)
 
 	if hexBlockNumber != "" && hexBlockNumber != "0x0" {
 		timestamp, err := c.FetchBlockTimestamp(hexBlockNumber)
@@ -178,27 +185,28 @@ func (c *Client) FetchBlockTimestamp(blockNumber string) (string, error) {
 	return time.Unix(unixTime, 0).UTC().Format(time.RFC3339), nil
 }
 
-func (c *Client) FetchTransactionReceipt(hash string) (string, error) {
+func (c *Client) FetchTransactionReceipt(hash string) (string, string, error) {
 	if c.apiKey == "" {
-		return "", errors.New("ETHERSCAN_API_KEY environment variable is not set")
+		return "", "", errors.New("ETHERSCAN_API_KEY environment variable is not set")
 	}
 
 	url := fmt.Sprintf("%s?chainid=%d&module=proxy&action=eth_getTransactionReceipt&txhash=%s&apikey=%s", c.baseURL, c.chainId, hash, c.apiKey)
 
 	resp, err := c.http.Get(url)
 	if err != nil {
-		return "", err
+		return "", "", err
 	}
 	defer resp.Body.Close()
 
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
-		return "", err
+		return "", "", err
 	}
 
 	var proxyResp struct {
 		Result struct {
-			Status string `json:"status"`
+			Status  string `json:"status"`
+			GasUsed string `json:"gasUsed"`
 		} `json:"result"`
 		Error *struct {
 			Message string `json:"message"`
@@ -206,24 +214,25 @@ func (c *Client) FetchTransactionReceipt(hash string) (string, error) {
 	}
 
 	if err := json.Unmarshal(body, &proxyResp); err != nil {
-		return "", fmt.Errorf("failed to decode response: %w", err)
+		return "", "", fmt.Errorf("failed to decode response: %w", err)
 	}
 
 	if proxyResp.Error != nil {
-		return "", errors.New(proxyResp.Error.Message)
+		return "", "", errors.New(proxyResp.Error.Message)
 	}
 
 	if string(body) == `{"result":null}` || string(body) == `{"result": null}` {
-		return "Pending", nil
+		return "Pending", "", nil
 	}
 
+	status := "Pending"
 	if proxyResp.Result.Status == "0x1" {
-		return "success", nil
+		status = "success"
 	} else if proxyResp.Result.Status == "0x0" {
-		return "failed", nil
+		status = "failed"
 	}
 
-	return "Pending", nil
+	return status, proxyResp.Result.GasUsed, nil
 }
 
 func formatValue(hexStr string) string {
@@ -265,6 +274,31 @@ func formatGasPrice(hexStr string) string {
 	eth, _, _ := hexToFloat(hexStr, 1e18)
 
 	return fmt.Sprintf("%s Gwei (%s ETH)", gwei.Text('f', -1), eth.Text('f', -1))
+}
+
+func formatTransactionFee(gasUsedHex, gasPriceHex string) string {
+	if gasUsedHex == "" || gasPriceHex == "" {
+		return ""
+	}
+
+	gu := new(big.Int)
+	if _, ok := gu.SetString(strings.TrimPrefix(gasUsedHex, "0x"), 16); !ok {
+		return ""
+	}
+
+	gp := new(big.Int)
+	if _, ok := gp.SetString(strings.TrimPrefix(gasPriceHex, "0x"), 16); !ok {
+		return ""
+	}
+
+	// Fee = gasUsed * gasPrice
+	feeWei := new(big.Int).Mul(gu, gp)
+
+	// 1 ETH = 10^18 Wei
+	feeEth := new(big.Float).SetInt(feeWei)
+	feeEth.Quo(feeEth, big.NewFloat(1e18))
+
+	return fmt.Sprintf("%s ETH", feeEth.Text('f', -1))
 }
 
 func hexToDecimal(hexStr string) string {
