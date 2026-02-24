@@ -3,8 +3,10 @@ package ui
 import (
 	"fmt"
 	"strings"
+	"time"
 
 	"awesomeProject/internal/etherscan"
+	"github.com/charmbracelet/bubbles/progress"
 	"github.com/charmbracelet/bubbles/textinput"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
@@ -22,6 +24,7 @@ const (
 type Model struct {
 	state     sessionState
 	textInput textinput.Model
+	progress  progress.Model
 	tx        *etherscan.Transaction
 	err       error
 	client    *etherscan.Client
@@ -41,6 +44,7 @@ func New(client *etherscan.Client) Model {
 	return Model{
 		state:     inputState,
 		textInput: ti,
+		progress:  progress.New(progress.WithDefaultGradient()),
 		client:    client,
 		chainID:   client.ChainID(),
 	}
@@ -52,6 +56,13 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	var cmd tea.Cmd
 
 	switch msg := msg.(type) {
+	case tea.WindowSizeMsg:
+		m.progress.Width = msg.Width - 10
+		if m.progress.Width > 80 {
+			m.progress.Width = 80
+		}
+		return m, nil
+
 	case tea.KeyMsg:
 		switch msg.Type {
 		case tea.KeyCtrlC, tea.KeyEsc:
@@ -72,7 +83,8 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 					return m, nil
 				}
 				m.state = loadingState
-				return m, fetchTransactionCmd(hash, m.client)
+				m.progress.SetPercent(0)
+				return m, tea.Batch(fetchTransactionCmd(hash, m.client), tickCmd())
 			}
 			if m.state == resultState || m.state == errorState {
 				m.state = inputState
@@ -84,11 +96,25 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case txMsg:
 		m.tx = msg.tx
 		m.state = resultState
+		m.progress.SetPercent(1.0)
 		return m, nil
 	case errMsg:
 		m.err = msg
 		m.state = errorState
 		return m, nil
+	case tickMsg:
+		if m.state != loadingState {
+			return m, nil
+		}
+		if m.progress.Percent() >= 0.9 {
+			return m, nil
+		}
+		cmd := m.progress.IncrPercent(0.1)
+		return m, tea.Batch(tickCmd(), cmd)
+	case progress.FrameMsg:
+		progressModel, cmd := m.progress.Update(msg)
+		m.progress = progressModel.(progress.Model)
+		return m, cmd
 	}
 
 	if m.state == inputState {
@@ -116,7 +142,11 @@ func (m Model) View() string {
 			m.textInput.View(),
 		) + helpStyle.Render("\n\n(tab) switch network • (enter) search • (esc) quit")
 	case loadingState:
-		s = fmt.Sprintf("\n  Searching for %s...\n", m.textInput.Value())
+		s = fmt.Sprintf(
+			"\n  Searching for %s...\n\n  %s",
+			m.textInput.Value(),
+			m.progress.View(),
+		)
 	case resultState:
 		s = renderTransaction(m.tx)
 		s += helpStyle.Render("\n\npress enter to search again • esc to quit")
@@ -213,4 +243,12 @@ func fetchTransactionCmd(hash string, client *etherscan.Client) tea.Cmd {
 		}
 		return txMsg{tx: tx}
 	}
+}
+
+type tickMsg time.Time
+
+func tickCmd() tea.Cmd {
+	return tea.Tick(time.Millisecond*100, func(t time.Time) tea.Msg {
+		return tickMsg(t)
+	})
 }
