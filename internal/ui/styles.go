@@ -45,4 +45,7 @@ var (
 
 	lightGrayStyle = lipgloss.NewStyle().
 			Foreground(lipgloss.Color("#888888"))
+
+	darkGrayStyle = lipgloss.NewStyle().
+			Foreground(lipgloss.Color("#555555"))
 )

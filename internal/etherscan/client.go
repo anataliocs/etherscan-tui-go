@@ -22,6 +22,8 @@ type Transaction struct {
 	Nonce            string `json:"nonce"`
 	TransactionIndex string `json:"transactionIndex"`
 	Input            string `json:"input"`
+	Type             string `json:"type"`
+	Confirmations    string `json:"confirmations,omitzero"`
 	Status           string `json:"status"`             // "Pending", "success", "failed", "dropped", "replaced"
 	Timestamp        string `json:"timestamp,omitzero"` // ISO 8601 format
 	GasUsed          string `json:"gasUsed"`
@@ -120,6 +122,14 @@ func (c *Client) FetchTransaction(hash string) (*Transaction, error) {
 	tx.GasPrice = formatGasPrice(tx.GasPrice)
 	tx.Nonce = hexToDecimal(tx.Nonce)
 	tx.TransactionIndex = hexToDecimal(tx.TransactionIndex)
+	tx.Type = formatTransactionType(tx.Type)
+
+	latestBlock, err := c.FetchLatestBlockNumber()
+	if err == nil {
+		tx.Confirmations = calculateConfirmations(latestBlock, hexBlockNumber)
+	} else {
+		tx.Confirmations = "error"
+	}
 
 	status, gasUsed, _ := c.FetchTransactionReceipt(hash)
 	tx.Status = status
@@ -134,6 +144,83 @@ func (c *Client) FetchTransaction(hash string) (*Transaction, error) {
 	}
 
 	return &tx, nil
+}
+
+func (c *Client) FetchLatestBlockNumber() (string, error) {
+	if c.apiKey == "" {
+		return "", errors.New("ETHERSCAN_API_KEY environment variable is not set")
+	}
+
+	url := fmt.Sprintf("%s?chainid=%d&module=proxy&action=eth_blockNumber&apikey=%s", c.baseURL, c.chainId, c.apiKey)
+
+	resp, err := c.http.Get(url)
+	if err != nil {
+		return "", err
+	}
+	defer resp.Body.Close()
+
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return "", err
+	}
+
+	var proxyResp struct {
+		Result string `json:"result"`
+		Error  *struct {
+			Message string `json:"message"`
+		} `json:"error"`
+	}
+
+	if err := json.Unmarshal(body, &proxyResp); err != nil {
+		return "", fmt.Errorf("failed to decode response: %w", err)
+	}
+
+	if proxyResp.Error != nil {
+		return "", errors.New(proxyResp.Error.Message)
+	}
+
+	if proxyResp.Result == "" {
+		return "", errors.New("invalid block number response")
+	}
+
+	return proxyResp.Result, nil
+}
+
+func calculateConfirmations(latestBlock, txBlock string) string {
+	if latestBlock == "" || txBlock == "" || txBlock == "0x0" {
+		return ""
+	}
+
+	latest := stringToBigInt(latestBlock)
+	tx := stringToBigInt(txBlock)
+
+	if latest == nil || tx == nil {
+		return "error"
+	}
+
+	diff := new(big.Int).Sub(latest, tx)
+	if diff.Sign() < 0 {
+		return "0"
+	}
+
+	// confirmations = latest - tx + 1
+	conf := new(big.Int).Add(diff, big.NewInt(1))
+	return conf.String()
+}
+
+func stringToBigInt(s string) *big.Int {
+	bi := new(big.Int)
+	base := 10
+	trimmed := s
+	if strings.HasPrefix(s, "0x") {
+		base = 16
+		trimmed = strings.TrimPrefix(s, "0x")
+	}
+
+	if _, ok := bi.SetString(trimmed, base); !ok {
+		return nil
+	}
+	return bi
 }
 
 func (c *Client) FetchBlockTimestamp(blockNumber string) (string, error) {
@@ -318,4 +405,28 @@ func hexToDecimal(hexStr string) string {
 	}
 
 	return bi.String()
+}
+
+func formatTransactionType(hexStr string) string {
+	if hexStr == "" || hexStr == "0x" {
+		return "0 (Legacy)"
+	}
+	bi := stringToBigInt(hexStr)
+	if bi == nil {
+		return hexStr
+	}
+
+	val := bi.Int64()
+	switch val {
+	case 0:
+		return "0 (Legacy)"
+	case 1:
+		return "1 (Access List)"
+	case 2:
+		return "2 (EIP-1559)"
+	case 3:
+		return "3 (EIP-4844)"
+	default:
+		return fmt.Sprintf("%d", val)
+	}
 }

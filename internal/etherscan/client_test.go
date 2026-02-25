@@ -17,7 +17,7 @@ func TestFetchTransaction_MockAPI(t *testing.T) {
 	}{
 		{
 			name:         "Success",
-			responseBody: `{"jsonrpc":"2.0","id":1,"result":{"hash":"0x123","blockNumber":"0x1"}}`,
+			responseBody: `{"jsonrpc":"2.0","id":1,"result":{"hash":"0x123","blockNumber":"0xb","type":"0x2"}}`,
 			expectedHash: "0x123",
 		},
 		{
@@ -45,40 +45,41 @@ func TestFetchTransaction_MockAPI(t *testing.T) {
 			responseBody: `{"jsonrpc":"2.0","id":1,"result":"Error! Transaction hash not found"}`,
 			expectedErr:  "Etherscan API error: Error! Transaction hash not found (Is the hash on the correct network?)",
 		},
+		{
+			name:         "Success Repro Sepolia",
+			responseBody: `{"jsonrpc":"2.0","id":1,"result":{"hash":"0xe16e8b72443aaee9c3d4ec42ecd973dc7faf583475f66d5a7ac9ebcce72b32c8","blockNumber":"0x63ef52","type":"0x2"}}`,
+			expectedHash: "0xe16e8b72443aaee9c3d4ec42ecd973dc7faf583475f66d5a7ac9ebcce72b32c8",
+		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			mockHandler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 				w.Header().Set("Content-Type", "application/json")
-				w.Write([]byte(tt.responseBody))
-			}))
+				action := r.URL.Query().Get("action")
+				switch action {
+				case "eth_getTransactionByHash":
+					w.Write([]byte(tt.responseBody))
+				case "eth_getBlockByNumber":
+					w.Write([]byte(`{"jsonrpc":"2.0","id":1,"result":{"timestamp":"0x65d507c0"}}`)) // 2024-02-20T20:12:48Z
+				case "eth_getTransactionReceipt":
+					w.Write([]byte(`{"jsonrpc":"2.0","id":1,"result":{"status":"0x1","gasUsed":"0x5208"}}`)) // 21000
+				case "eth_blockNumber":
+					if tt.name == "Success Repro Sepolia" {
+						w.Write([]byte(`{"jsonrpc":"2.0","id":1,"result":"0x63ef52"}`))
+					} else {
+						w.Write([]byte(`{"jsonrpc":"2.0","id":1,"result":"0xb"}`)) // 11
+					}
+				default:
+					w.Write([]byte(tt.responseBody))
+				}
+			})
+
+			server := httptest.NewServer(mockHandler)
 			defer server.Close()
 
 			client := NewClient("test-api-key")
 			client.baseURL = server.URL
-			// disable sleep for testing
-			// Actually, we can't easily disable it without more refactoring or conditional compilation,
-			// but 500ms per test case is acceptable for now.
-
-			if tt.name == "Success With Timestamp" {
-				// Mock the block timestamp request
-				server.Config.Handler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-					w.Header().Set("Content-Type", "application/json")
-					if strings.Contains(r.URL.RawQuery, "eth_getTransactionByHash") {
-						w.Write([]byte(tt.responseBody))
-					} else if strings.Contains(r.URL.RawQuery, "eth_getBlockByNumber") {
-						// Verify that tag is hex
-						if !strings.Contains(r.URL.RawQuery, "tag=0x") {
-							w.Write([]byte(`{"jsonrpc":"2.0","id":1,"error":{"message":"tag must be hex"}}`))
-							return
-						}
-						w.Write([]byte(`{"jsonrpc":"2.0","id":1,"result":{"timestamp":"0x65d507c0"}}`)) // 2024-02-20T20:12:48Z
-					} else if strings.Contains(r.URL.RawQuery, "eth_getTransactionReceipt") {
-						w.Write([]byte(`{"jsonrpc":"2.0","id":1,"result":{"status":"0x1","gasUsed":"0x5208"}}`)) // 21000
-					}
-				})
-			}
 
 			tx, err := client.FetchTransaction("0xabc")
 
@@ -101,8 +102,11 @@ func TestFetchTransaction_MockAPI(t *testing.T) {
 			}
 
 			if tt.name == "Success" {
-				if tx.BlockNumber != "1" {
-					t.Errorf("Expected block number '1', got '%s'", tx.BlockNumber)
+				if tx.BlockNumber != "11" {
+					t.Errorf("Expected block number '11', got '%s'", tx.BlockNumber)
+				}
+				if tx.Type != "2 (EIP-1559)" {
+					t.Errorf("Expected type '2 (EIP-1559)', got '%s'", tx.Type)
 				}
 			}
 
@@ -110,6 +114,21 @@ func TestFetchTransaction_MockAPI(t *testing.T) {
 				expectedTimestamp := "2024-02-20T20:12:48Z"
 				if tx.Timestamp != expectedTimestamp {
 					t.Errorf("Expected timestamp '%s', got '%s'", expectedTimestamp, tx.Timestamp)
+				}
+				if tx.Confirmations != "10" {
+					t.Errorf("Expected 10 confirmations, got %s", tx.Confirmations)
+				}
+			}
+
+			if tt.name == "Success" || tt.name == "Success Repro Sepolia" {
+				if tx.Confirmations != "1" {
+					t.Errorf("Expected 1 confirmation, got %s", tx.Confirmations)
+				}
+			}
+
+			if tt.name == "Success Repro Sepolia" {
+				if tx.Type != "2 (EIP-1559)" {
+					t.Errorf("Expected type '2 (EIP-1559)', got '%s'", tx.Type)
 				}
 			}
 		})
@@ -176,6 +195,29 @@ func TestFormatTransactionFee(t *testing.T) {
 		got := formatTransactionFee(tt.gasUsed, tt.gasPrice)
 		if got != tt.expected {
 			t.Errorf("formatTransactionFee(%s, %s) = %s; want %s", tt.gasUsed, tt.gasPrice, got, tt.expected)
+		}
+	}
+}
+
+func TestFormatTransactionType(t *testing.T) {
+	tests := []struct {
+		hex      string
+		expected string
+	}{
+		{"0x0", "0 (Legacy)"},
+		{"0x1", "1 (Access List)"},
+		{"0x2", "2 (EIP-1559)"},
+		{"0x02", "2 (EIP-1559)"},
+		{"0x3", "3 (EIP-4844)"},
+		{"0xa", "10"},
+		{"", "0 (Legacy)"},
+		{"0x", "0 (Legacy)"},
+	}
+
+	for _, tt := range tests {
+		got := formatTransactionType(tt.hex)
+		if got != tt.expected {
+			t.Errorf("formatTransactionType(%s) = %s; want %s", tt.hex, got, tt.expected)
 		}
 	}
 }

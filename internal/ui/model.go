@@ -171,6 +171,7 @@ func renderTransaction(tx *etherscan.Transaction) string {
 	}{
 		{"Hash", tx.Hash, valueStyle},
 		{"Status", formatStatus(tx.Status), getStatusStyle(tx.Status)},
+		{"Type", tx.Type, valueStyle},
 		{"Timestamp", tx.Timestamp, valueStyle},
 		{"Block Number", tx.BlockNumber, valueStyle},
 		{"From", tx.From, valueStyle},
@@ -194,6 +195,12 @@ func renderTransaction(tx *etherscan.Transaction) string {
 			gwei := parts[0]
 			eth := "(" + parts[1]
 			renderedValue = item.style.Render(gwei) + " " + lightGrayStyle.Render(eth)
+		} else if item.label == "Block Number" && tx.Confirmations != "" {
+			confText := fmt.Sprintf(" (%s confirmations)", tx.Confirmations)
+			if tx.Confirmations == "error" {
+				confText = " (unknown confirmations)"
+			}
+			renderedValue = item.style.Render(item.value) + " " + darkGrayStyle.Render(confText)
 		} else {
 			renderedValue = item.style.Render(item.value)
 		}
