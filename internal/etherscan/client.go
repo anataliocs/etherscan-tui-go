@@ -1,6 +1,7 @@
 package etherscan
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -54,7 +55,7 @@ func (c *Client) ChainID() int {
 	return c.chainId
 }
 
-func (c *Client) FetchTransaction(hash string) (*Transaction, error) {
+func (c *Client) FetchTransaction(ctx context.Context, hash string) (*Transaction, error) {
 	if c.apiKey == "" {
 		return nil, errors.New("ETHERSCAN_API_KEY environment variable is not set")
 	}
@@ -62,15 +63,13 @@ func (c *Client) FetchTransaction(hash string) (*Transaction, error) {
 	url := fmt.Sprintf("%s?chainid=%d&module=proxy&action=eth_getTransactionByHash&txhash=%s&apikey=%s", c.baseURL, c.chainId, hash, c.apiKey)
 
 	// small delay so the loading state is visible in the UI and to be polite with API
-	time.Sleep(500 * time.Millisecond)
-
-	resp, err := c.http.Get(url)
-	if err != nil {
-		return nil, err
+	select {
+	case <-time.After(500 * time.Millisecond):
+	case <-ctx.Done():
+		return nil, ctx.Err()
 	}
-	defer resp.Body.Close()
 
-	body, err := io.ReadAll(resp.Body)
+	body, err := c.doRequestWithRetry(ctx, url)
 	if err != nil {
 		return nil, err
 	}
@@ -124,42 +123,105 @@ func (c *Client) FetchTransaction(hash string) (*Transaction, error) {
 	tx.TransactionIndex = hexToDecimal(tx.TransactionIndex)
 	tx.Type = formatTransactionType(tx.Type)
 
-	latestBlock, err := c.FetchLatestBlockNumber()
+	latestBlock, err := c.FetchLatestBlockNumber(ctx)
 	if err == nil {
 		tx.Confirmations = calculateConfirmations(latestBlock, hexBlockNumber)
 	} else {
-		tx.Confirmations = "error"
+		tx.Confirmations = err.Error()
 	}
 
-	status, gasUsed, _ := c.FetchTransactionReceipt(hash)
+	status, gasUsed, _ := c.FetchTransactionReceipt(ctx, hash)
 	tx.Status = status
 	tx.GasUsed = hexToDecimal(gasUsed)
 	tx.TransactionFee = formatTransactionFee(gasUsed, hexGasPrice)
 
 	if hexBlockNumber != "" && hexBlockNumber != "0x0" {
-		timestamp, err := c.FetchBlockTimestamp(hexBlockNumber)
+		timestamp, err := c.FetchBlockTimestamp(ctx, hexBlockNumber)
 		if err == nil {
 			tx.Timestamp = timestamp
+		} else {
+			tx.Timestamp = err.Error()
 		}
 	}
 
 	return &tx, nil
 }
 
-func (c *Client) FetchLatestBlockNumber() (string, error) {
+func (c *Client) doRequestWithRetry(ctx context.Context, url string) ([]byte, error) {
+	maxRetries := 3
+	var lastErr error
+
+	for i := range maxRetries + 1 {
+		if i > 0 {
+			// Exponential backoff: 1s, 2s, 4s
+			backoff := time.Duration(1<<uint(i-1)) * time.Second
+			select {
+			case <-time.After(backoff):
+			case <-ctx.Done():
+				return nil, ctx.Err()
+			}
+		}
+
+		req, err := http.NewRequestWithContext(ctx, "GET", url, nil)
+		if err != nil {
+			return nil, err
+		}
+
+		resp, err := c.http.Do(req)
+		if err != nil {
+			lastErr = err
+			continue
+		}
+
+		body, err := io.ReadAll(resp.Body)
+		resp.Body.Close()
+		if err != nil {
+			lastErr = err
+			continue
+		}
+
+		// Check for rate limit error in body
+		if strings.Contains(string(body), "Max calls per sec rate limit reached") {
+			lastErr = errors.New("Etherscan API error: Max calls per sec rate limit reached")
+			continue
+		}
+
+		// Also check proxy error object if it's there
+		var proxyResp struct {
+			Result json.RawMessage `json:"result"`
+			Error  *struct {
+				Message string `json:"message"`
+			} `json:"error"`
+		}
+		if json.Unmarshal(body, &proxyResp) == nil {
+			if proxyResp.Error != nil && strings.Contains(proxyResp.Error.Message, "rate limit") {
+				lastErr = errors.New(proxyResp.Error.Message)
+				continue
+			}
+			// Check if Result is a string and contains rate limit
+			var msg string
+			if json.Unmarshal(proxyResp.Result, &msg) == nil {
+				if strings.Contains(msg, "rate limit") {
+					lastErr = fmt.Errorf("Etherscan API error: %s", msg)
+					continue
+				}
+			}
+		}
+
+		return body, nil
+	}
+
+	return nil, lastErr
+}
+
+func (c *Client) FetchLatestBlockNumber(ctx context.Context) (string, error) {
 	if c.apiKey == "" {
 		return "", errors.New("ETHERSCAN_API_KEY environment variable is not set")
 	}
 
 	url := fmt.Sprintf("%s?chainid=%d&module=proxy&action=eth_blockNumber&apikey=%s", c.baseURL, c.chainId, c.apiKey)
 
-	resp, err := c.http.Get(url)
-	if err != nil {
-		return "", err
-	}
-	defer resp.Body.Close()
-
-	body, err := io.ReadAll(resp.Body)
+	body, err := c.doRequestWithRetry(ctx, url)
 	if err != nil {
 		return "", err
 	}
@@ -223,29 +285,21 @@ func stringToBigInt(s string) *big.Int {
 	return bi
 }
 
-func (c *Client) FetchBlockTimestamp(blockNumber string) (string, error) {
+func (c *Client) FetchBlockTimestamp(ctx context.Context, blockNumber string) (string, error) {
 	if c.apiKey == "" {
 		return "", errors.New("ETHERSCAN_API_KEY environment variable is not set")
 	}
 
 	url := fmt.Sprintf("%s?chainid=%d&module=proxy&action=eth_getBlockByNumber&tag=%s&boolean=false&apikey=%s", c.baseURL, c.chainId, blockNumber, c.apiKey)
 
-	resp, err := c.http.Get(url)
-	if err != nil {
-		return "", err
-	}
-	defer resp.Body.Close()
-
-	body, err := io.ReadAll(resp.Body)
+	body, err := c.doRequestWithRetry(ctx, url)
 	if err != nil {
 		return "", err
 	}
 
 	var proxyResp struct {
-		Result struct {
-			Timestamp string `json:"timestamp"`
-		} `json:"result"`
-		Error *struct {
+		Result json.RawMessage `json:"result"`
+		Error  *struct {
 			Message string `json:"message"`
 		} `json:"error"`
 	}
@@ -258,13 +312,30 @@ func (c *Client) FetchBlockTimestamp(blockNumber string) (string, error) {
 		return "", errors.New(proxyResp.Error.Message)
 	}
 
-	if proxyResp.Result.Timestamp == "" {
+	if len(proxyResp.Result) == 0 || string(proxyResp.Result) == "null" {
+		return "", errors.New("timestamp not found (block not found)")
+	}
+
+	var block struct {
+		Timestamp string `json:"timestamp"`
+	}
+
+	if err := json.Unmarshal(proxyResp.Result, &block); err != nil {
+		// If it's not a block object, check if it's a string (e.g., an error message)
+		var msg string
+		if json.Unmarshal(proxyResp.Result, &msg) == nil {
+			return "", fmt.Errorf("Etherscan API error: %s", msg)
+		}
+		return "", fmt.Errorf("unexpected response format for block: %w", err)
+	}
+
+	if block.Timestamp == "" {
 		return "", errors.New("timestamp not found in block")
 	}
 
 	// Parse hex timestamp
 	var unixTime int64
-	_, err = fmt.Sscanf(proxyResp.Result.Timestamp, "0x%x", &unixTime)
+	_, err = fmt.Sscanf(block.Timestamp, "0x%x", &unixTime)
 	if err != nil {
 		return "", fmt.Errorf("failed to parse timestamp: %w", err)
 	}
@@ -272,20 +343,14 @@ func (c *Client) FetchBlockTimestamp(blockNumber string) (string, error) {
 	return time.Unix(unixTime, 0).UTC().Format(time.RFC3339), nil
 }
 
-func (c *Client) FetchTransactionReceipt(hash string) (string, string, error) {
+func (c *Client) FetchTransactionReceipt(ctx context.Context, hash string) (string, string, error) {
 	if c.apiKey == "" {
 		return "", "", errors.New("ETHERSCAN_API_KEY environment variable is not set")
 	}
 
 	url := fmt.Sprintf("%s?chainid=%d&module=proxy&action=eth_getTransactionReceipt&txhash=%s&apikey=%s", c.baseURL, c.chainId, hash, c.apiKey)
 
-	resp, err := c.http.Get(url)
-	if err != nil {
-		return "", "", err
-	}
-	defer resp.Body.Close()
-
-	body, err := io.ReadAll(resp.Body)
+	body, err := c.doRequestWithRetry(ctx, url)
 	if err != nil {
 		return "", "", err
 	}

@@ -1,6 +1,7 @@
 package ui
 
 import (
+	"context"
 	"fmt"
 	"strings"
 	"time"
@@ -84,7 +85,9 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				}
 				m.state = loadingState
 				m.progress.SetPercent(0)
-				return m, tea.Batch(fetchTransactionCmd(hash, m.client), tickCmd())
+				// Use m.textInput as a unique ID for the context if needed, but here simple background is fine for now
+				// though better to have it cancellable.
+				return m, tea.Batch(fetchTransactionCmd(context.Background(), hash, m.client), tickCmd())
 			}
 			if m.state == resultState || m.state == errorState {
 				m.state = inputState
@@ -196,9 +199,12 @@ func renderTransaction(tx *etherscan.Transaction) string {
 			eth := "(" + parts[1]
 			renderedValue = item.style.Render(gwei) + " " + lightGrayStyle.Render(eth)
 		} else if item.label == "Block Number" && tx.Confirmations != "" {
-			confText := fmt.Sprintf(" (%s confirmations)", tx.Confirmations)
-			if tx.Confirmations == "error" {
-				confText = " (unknown confirmations)"
+			var confText string
+			// If confirmations is numeric, show it normally. Otherwise, it's an error message.
+			if _, err := fmt.Sscan(tx.Confirmations, new(int)); err == nil {
+				confText = fmt.Sprintf(" (%s confirmations)", tx.Confirmations)
+			} else {
+				confText = fmt.Sprintf(" (%s)", tx.Confirmations)
 			}
 			renderedValue = item.style.Render(item.value) + " " + darkGrayStyle.Render(confText)
 		} else {
@@ -243,9 +249,9 @@ func getStatusStyle(status string) lipgloss.Style {
 	}
 }
 
-func fetchTransactionCmd(hash string, client *etherscan.Client) tea.Cmd {
+func fetchTransactionCmd(ctx context.Context, hash string, client *etherscan.Client) tea.Cmd {
 	return func() tea.Msg {
-		tx, err := client.FetchTransaction(hash)
+		tx, err := client.FetchTransaction(ctx, hash)
 		if err != nil {
 			return errMsg(err)
 		}

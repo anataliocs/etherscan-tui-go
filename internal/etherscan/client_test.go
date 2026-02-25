@@ -1,11 +1,14 @@
 package etherscan
 
 import (
+	"context"
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
 	"strings"
+	"sync/atomic"
 	"testing"
+	"time"
 )
 
 func TestFetchTransaction_MockAPI(t *testing.T) {
@@ -81,7 +84,7 @@ func TestFetchTransaction_MockAPI(t *testing.T) {
 			client := NewClient("test-api-key")
 			client.baseURL = server.URL
 
-			tx, err := client.FetchTransaction("0xabc")
+			tx, err := client.FetchTransaction(context.Background(), "0xabc")
 
 			if tt.expectedErr != "" {
 				if err == nil {
@@ -322,7 +325,7 @@ func TestFetchTransactionReceipt(t *testing.T) {
 			client := NewClient("test-api-key")
 			client.baseURL = server.URL
 
-			status, gasUsed, err := client.FetchTransactionReceipt("0xabc")
+			status, gasUsed, err := client.FetchTransactionReceipt(context.Background(), "0xabc")
 			if err != nil {
 				t.Fatalf("Unexpected error: %v", err)
 			}
@@ -337,5 +340,54 @@ func TestFetchTransactionReceipt(t *testing.T) {
 				}
 			}
 		})
+	}
+}
+
+func TestFetchTransaction_RetryOnRateLimit(t *testing.T) {
+	var callCount atomic.Int32
+	mockHandler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		callCount.Add(1)
+
+		action := r.URL.Query().Get("action")
+		switch action {
+		case "eth_getTransactionByHash":
+			// We only want to test retry for THIS call specifically in this test
+			if callCount.Load() == 1 {
+				w.Write([]byte(`{"jsonrpc":"2.0","id":1,"result":"Max calls per sec rate limit reached"}`))
+				return
+			}
+			w.Write([]byte(`{"jsonrpc":"2.0","id":1,"result":{"hash":"0xabc","blockNumber":"0x1","type":"0x2"}}`))
+		case "eth_blockNumber":
+			w.Write([]byte(`{"jsonrpc":"2.0","id":1,"result":"0x1"}`))
+		case "eth_getTransactionReceipt":
+			w.Write([]byte(`{"jsonrpc":"2.0","id":1,"result":{"status":"0x1","gasUsed":"0x5208"}}`))
+		case "eth_getBlockByNumber":
+			w.Write([]byte(`{"jsonrpc":"2.0","id":1,"result":{"timestamp":"0x65d507c0"}}`))
+		}
+	})
+
+	server := httptest.NewServer(mockHandler)
+	defer server.Close()
+
+	client := NewClient("test-api-key")
+	client.baseURL = server.URL
+
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
+	tx, err := client.FetchTransaction(ctx, "0xabc")
+	if err != nil {
+		t.Fatalf("Unexpected error: %v", err)
+	}
+
+	// 1 (failed getTransactionByHash) + 1 (success getTransactionByHash)
+	// + 1 (blockNumber) + 1 (receipt) + 1 (block timestamp) = 5 calls
+	if callCount.Load() != 5 {
+		t.Errorf("Expected 5 calls to the API, got %d", callCount.Load())
+	}
+
+	if tx.Hash != "0xabc" {
+		t.Errorf("Expected hash '0xabc', got '%s'", tx.Hash)
 	}
 }
