@@ -207,6 +207,25 @@ func renderTransaction(tx *etherscan.Transaction) string {
 				confText = fmt.Sprintf(" (%s)", tx.Confirmations)
 			}
 			renderedValue = item.style.Render(item.value) + " " + darkGrayStyle.Render(confText)
+		} else if item.label == "Timestamp" && item.value != "n/a" {
+			t, err := time.Parse(time.RFC3339, item.value)
+			if err == nil {
+				duration := time.Since(t)
+				h := int(duration.Hours())
+				m := int(duration.Minutes()) % 60
+				s := int(duration.Seconds()) % 60
+				var agoStr string
+				if h > 0 {
+					agoStr = fmt.Sprintf(" (%dh %dm %ds ago)", h, m, s)
+				} else if m > 0 {
+					agoStr = fmt.Sprintf(" (%dm %ds ago)", m, s)
+				} else {
+					agoStr = fmt.Sprintf(" (%ds ago)", s)
+				}
+				renderedValue = item.style.Render(item.value) + " " + darkGrayStyle.Render(agoStr)
+			} else {
+				renderedValue = item.style.Render(item.value)
+			}
 		} else {
 			renderedValue = item.style.Render(item.value)
 		}
