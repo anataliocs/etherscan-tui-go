@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"awesomeProject/internal/etherscan"
+
 	"github.com/charmbracelet/bubbles/progress"
 	"github.com/charmbracelet/bubbles/textinput"
 	tea "github.com/charmbracelet/bubbletea"
@@ -180,7 +181,8 @@ func renderTransaction(tx *etherscan.Transaction) string {
 		{"From", tx.From, valueStyle},
 		{"To", tx.To, valueStyle},
 		{"Value", tx.Value, valueStyle},
-		{"Gas", tx.Gas, valueStyle},
+		{"Gas Limit", tx.Gas, valueStyle},
+		{"Gas Usage", tx.GasUsed, valueStyle},
 		{"Gas Price", tx.GasPrice, valueStyle},
 		{"Transaction Fee", tx.TransactionFee, valueStyle},
 		{"Nonce", tx.Nonce, valueStyle},
@@ -223,6 +225,18 @@ func renderTransaction(tx *etherscan.Transaction) string {
 					agoStr = fmt.Sprintf(" (%ds ago)", s)
 				}
 				renderedValue = item.style.Render(item.value) + " " + darkGrayStyle.Render(agoStr)
+			} else {
+				renderedValue = item.style.Render(item.value)
+			}
+		} else if item.label == "Gas Usage" && item.value != "n/a" && tx.Gas != "" && tx.Gas != "n/a" {
+			var gasUsed, gasLimit float64
+			if _, err := fmt.Sscan(item.value, &gasUsed); err == nil {
+				if _, err := fmt.Sscan(tx.Gas, &gasLimit); err == nil && gasLimit > 0 {
+					percentage := (gasUsed / gasLimit) * 100
+					renderedValue = item.style.Render(item.value) + " " + darkGrayStyle.Render(fmt.Sprintf("(%.2f%%)", percentage))
+				} else {
+					renderedValue = item.style.Render(item.value)
+				}
 			} else {
 				renderedValue = item.style.Render(item.value)
 			}
