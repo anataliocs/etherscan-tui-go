@@ -29,6 +29,7 @@ type Transaction struct {
 	Timestamp        string `json:"timestamp,omitzero"` // ISO 8601 format
 	GasUsed          string `json:"gasUsed"`
 	TransactionFee   string `json:"transactionFee"`
+	ToAccountType    string `json:"toAccountType,omitzero"` // "EOA" or "Smart Contract"
 }
 
 type Client struct {
@@ -141,6 +142,17 @@ func (c *Client) FetchTransaction(ctx context.Context, hash string) (*Transactio
 			tx.Timestamp = timestamp
 		} else {
 			tx.Timestamp = err.Error()
+		}
+	}
+
+	if tx.To != "" && tx.To != "0x0000000000000000000000000000000000000000" {
+		isContract, err := c.IsContract(ctx, tx.To)
+		if err == nil {
+			if isContract {
+				tx.ToAccountType = "Smart Contract"
+			} else {
+				tx.ToAccountType = "EOA"
+			}
 		}
 	}
 
@@ -341,6 +353,37 @@ func (c *Client) FetchBlockTimestamp(ctx context.Context, blockNumber string) (s
 	}
 
 	return time.Unix(unixTime, 0).UTC().Format(time.RFC3339), nil
+}
+
+func (c *Client) IsContract(ctx context.Context, address string) (bool, error) {
+	if c.apiKey == "" {
+		return false, errors.New("ETHERSCAN_API_KEY environment variable is not set")
+	}
+
+	url := fmt.Sprintf("%s?chainid=%d&module=proxy&action=eth_getCode&address=%s&tag=latest&apikey=%s", c.baseURL, c.chainId, address, c.apiKey)
+
+	body, err := c.doRequestWithRetry(ctx, url)
+	if err != nil {
+		return false, err
+	}
+
+	var proxyResp struct {
+		Result string `json:"result"`
+		Error  *struct {
+			Message string `json:"message"`
+		} `json:"error"`
+	}
+
+	if err := json.Unmarshal(body, &proxyResp); err != nil {
+		return false, fmt.Errorf("failed to decode response: %w", err)
+	}
+
+	if proxyResp.Error != nil {
+		return false, errors.New(proxyResp.Error.Message)
+	}
+
+	// eth_getCode returns "0x" if the address is an EOA
+	return proxyResp.Result != "0x" && proxyResp.Result != "" && proxyResp.Result != "null", nil
 }
 
 func (c *Client) FetchTransactionReceipt(ctx context.Context, hash string) (string, string, error) {

@@ -240,6 +240,8 @@ func renderTransaction(tx *etherscan.Transaction) string {
 			} else {
 				renderedValue = item.style.Render(item.value)
 			}
+		} else if item.label == "To" && tx.ToAccountType != "" {
+			renderedValue = item.style.Render(item.value) + " " + darkGrayStyle.Render(fmt.Sprintf("(%s)", tx.ToAccountType))
 		} else {
 			renderedValue = item.style.Render(item.value)
 		}
