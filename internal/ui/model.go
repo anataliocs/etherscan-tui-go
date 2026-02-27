@@ -1,18 +1,12 @@
 package ui
 
 import (
-	"cmp"
-	"context"
-	"fmt"
-	"strings"
-	"time"
-
 	"awesomeProject/internal/etherscan"
+	"context"
 
 	"github.com/charmbracelet/bubbles/progress"
 	"github.com/charmbracelet/bubbles/textinput"
 	tea "github.com/charmbracelet/bubbletea"
-	"github.com/charmbracelet/lipgloss"
 )
 
 type sessionState int
@@ -37,6 +31,12 @@ type Model struct {
 type txMsg struct{ tx *etherscan.Transaction }
 type errMsg error
 
+// New creates a new Model with the given Etherscan client.
+// Parameters:
+//   - client: A pointer to an etherscan.Client used for API calls.
+//
+// Returns:
+//   - A Model initialized with the provided client and default settings.
 func New(client *etherscan.Client) Model {
 	ti := textinput.New()
 	ti.Placeholder = "0x..."
@@ -53,251 +53,19 @@ func New(client *etherscan.Client) Model {
 	}
 }
 
+// Init initializes the Model, starting the blinking cursor for the text input.
+// Returns:
+//   - A tea.Cmd to be executed on initialization.
 func (m Model) Init() tea.Cmd { return textinput.Blink }
 
-func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
-	var cmd tea.Cmd
-
-	switch msg := msg.(type) {
-	case tea.WindowSizeMsg:
-		m.progress.Width = msg.Width - 10
-		if m.progress.Width > 80 {
-			m.progress.Width = 80
-		}
-		return m, nil
-
-	case tea.KeyMsg:
-		switch msg.Type {
-		case tea.KeyCtrlC, tea.KeyEsc:
-			return m, tea.Quit
-		case tea.KeyTab:
-			if m.state == inputState {
-				if m.chainID == 1 {
-					m.chainID = 11155111
-				} else {
-					m.chainID = 1
-				}
-				m.client.SetChainID(m.chainID)
-			}
-		case tea.KeyEnter:
-			if m.state == inputState {
-				hash := strings.TrimSpace(m.textInput.Value())
-				if hash == "" {
-					return m, nil
-				}
-				m.state = loadingState
-				m.progress.SetPercent(0)
-				// Use m.textInput as a unique ID for the context if needed, but here simple background is fine for now
-				// though better to have it cancellable.
-				return m, tea.Batch(fetchTransactionCmd(context.Background(), hash, m.client), tickCmd())
-			}
-			if m.state == resultState || m.state == errorState {
-				m.state = inputState
-				m.textInput.Reset()
-				m.textInput.Focus()
-				return m, nil
-			}
-		}
-	case txMsg:
-		m.tx = msg.tx
-		m.state = resultState
-		m.progress.SetPercent(1.0)
-		return m, nil
-	case errMsg:
-		m.err = msg
-		m.state = errorState
-		return m, nil
-	case tickMsg:
-		if m.state != loadingState {
-			return m, nil
-		}
-		if m.progress.Percent() >= 0.9 {
-			return m, nil
-		}
-		cmd := m.progress.IncrPercent(0.1)
-		return m, tea.Batch(tickCmd(), cmd)
-	case progress.FrameMsg:
-		progressModel, cmd := m.progress.Update(msg)
-		m.progress = progressModel.(progress.Model)
-		return m, cmd
-	}
-
-	if m.state == inputState {
-		m.textInput, cmd = m.textInput.Update(msg)
-	}
-	return m, cmd
-}
-
-func (m Model) View() string {
-	var s string
-	switch m.state {
-	case inputState:
-		var networkToggle string
-		if m.chainID == 1 {
-			networkToggle = activeStyle.Render("Mainnet") + " | " + inactiveStyle.Render("Sepolia")
-		} else {
-			networkToggle = inactiveStyle.Render("Mainnet") + " | " + activeStyle.Render("Sepolia")
-		}
-
-		s = fmt.Sprintf(
-			"%s\n\n%s\n\n%s\n\n%s",
-			titleStyle.Render("Ethereum Transaction Explorer"),
-			"Network: "+networkToggle,
-			"Enter transaction hash:",
-			m.textInput.View(),
-		) + helpStyle.Render("\n\n(tab) switch network • (enter) search • (esc) quit")
-	case loadingState:
-		s = fmt.Sprintf(
-			"\n  Searching for %s...\n\n  %s",
-			m.textInput.Value(),
-			m.progress.View(),
-		)
-	case resultState:
-		s = renderTransaction(m.tx)
-		s += helpStyle.Render("\n\npress enter to search again • esc to quit")
-	case errorState:
-		s = fmt.Sprintf(
-			"%s\n\n%s",
-			titleStyle.Render("Error"),
-			errorStyle.Render(m.err.Error()),
-		) + helpStyle.Render("\n\npress enter to try again • esc to quit")
-	}
-	return "\n" + s + "\n"
-}
-
-func renderTransaction(tx *etherscan.Transaction) string {
-	var b strings.Builder
-	b.WriteString(titleStyle.Render("Transaction Details") + "\n\n")
-
-	items := []struct {
-		label string
-		value string
-		style lipgloss.Style
-	}{
-		{"Hash", tx.Hash, valueStyle},
-		{"Status", formatStatus(tx.Status), getStatusStyle(tx.Status)},
-		{"Type", tx.Type, valueStyle},
-		{"Timestamp", tx.Timestamp, valueStyle},
-		{"Block Number", tx.BlockNumber, valueStyle},
-		{"From", tx.From, valueStyle},
-		{"To", tx.To, valueStyle},
-		{"Value", tx.Value, valueStyle},
-		{"Gas Limit", tx.Gas, valueStyle},
-		{"Gas Usage", tx.GasUsed, valueStyle},
-		{"Gas Price", tx.GasPrice, valueStyle},
-		{"Transaction Fee", tx.TransactionFee, valueStyle},
-		{"Gas Fees", formatGasFees(tx), valueStyle},
-		{"Nonce", tx.Nonce, valueStyle},
-		{"Tx Index", tx.TransactionIndex, valueStyle},
-	}
-
-	for _, item := range items {
-		if item.value == "" {
-			item.value = "n/a"
-		}
-
-		var renderedValue string
-		if item.label == "Gas Price" && strings.Contains(item.value, "(") {
-			parts := strings.Split(item.value, " (")
-			gwei := parts[0]
-			eth := "(" + parts[1]
-			renderedValue = item.style.Render(gwei) + " " + lightGrayStyle.Render(eth)
-		} else if item.label == "Block Number" && tx.Confirmations != "" {
-			var confText string
-			// If confirmations is numeric, show it normally. Otherwise, it's an error message.
-			if _, err := fmt.Sscan(tx.Confirmations, new(int)); err == nil {
-				confText = fmt.Sprintf(" (%s confirmations)", tx.Confirmations)
-			} else {
-				confText = fmt.Sprintf(" (%s)", tx.Confirmations)
-			}
-			renderedValue = item.style.Render(item.value) + " " + darkGrayStyle.Render(confText)
-		} else if item.label == "Timestamp" && item.value != "n/a" {
-			t, err := time.Parse(time.RFC3339, item.value)
-			if err == nil {
-				duration := time.Since(t)
-				h := int(duration.Hours())
-				m := int(duration.Minutes()) % 60
-				s := int(duration.Seconds()) % 60
-				var agoStr string
-				if h > 0 {
-					agoStr = fmt.Sprintf(" (%dh %dm %ds ago)", h, m, s)
-				} else if m > 0 {
-					agoStr = fmt.Sprintf(" (%dm %ds ago)", m, s)
-				} else {
-					agoStr = fmt.Sprintf(" (%ds ago)", s)
-				}
-				renderedValue = item.style.Render(item.value) + " " + darkGrayStyle.Render(agoStr)
-			} else {
-				renderedValue = item.style.Render(item.value)
-			}
-		} else if item.label == "Gas Usage" && item.value != "n/a" && tx.Gas != "" && tx.Gas != "n/a" {
-			var gasUsed, gasLimit float64
-			if _, err := fmt.Sscan(item.value, &gasUsed); err == nil {
-				if _, err := fmt.Sscan(tx.Gas, &gasLimit); err == nil && gasLimit > 0 {
-					percentage := (gasUsed / gasLimit) * 100
-					renderedValue = item.style.Render(item.value) + " " + darkGrayStyle.Render(fmt.Sprintf("(%.2f%%)", percentage))
-				} else {
-					renderedValue = item.style.Render(item.value)
-				}
-			} else {
-				renderedValue = item.style.Render(item.value)
-			}
-		} else if item.label == "To" && tx.ToAccountType != "" {
-			renderedValue = item.style.Render(item.value) + " " + darkGrayStyle.Render(fmt.Sprintf("(%s)", tx.ToAccountType))
-		} else {
-			renderedValue = item.style.Render(item.value)
-		}
-
-		b.WriteString(labelStyle.Render(item.label+":") + " " + renderedValue + "\n")
-	}
-
-	return b.String()
-}
-
-func formatGasFees(tx *etherscan.Transaction) string {
-	if tx.MaxFeePerGas == "" && tx.MaxPriorityFeePerGas == "" && tx.BaseFeePerGas == "" {
-		return "n/a"
-	}
-
-	base := cmp.Or(tx.BaseFeePerGas, "n/a")
-	max := cmp.Or(tx.MaxFeePerGas, "n/a")
-	priority := cmp.Or(tx.MaxPriorityFeePerGas, "n/a")
-
-	return fmt.Sprintf("Base: %s Gwei | Max: %s Gwei | Max Priority: %s Gwei", base, max, priority)
-}
-
-func formatStatus(status string) string {
-	switch strings.ToLower(status) {
-	case "success":
-		return "✔ success"
-	case "failed":
-		return "✘ failed"
-	case "pending":
-		return "Pending"
-	case "dropped":
-		return "dropped"
-	case "replaced":
-		return "replaced"
-	default:
-		return status
-	}
-}
-
-func getStatusStyle(status string) lipgloss.Style {
-	switch strings.ToLower(status) {
-	case "success":
-		return successStyle
-	case "failed":
-		return failedStyle
-	case "pending":
-		return pendingStyle
-	case "dropped", "replaced":
-		return droppedStyle
-	default:
-		return valueStyle
-	}
-}
-
+// fetchTransactionCmd returns a tea.Cmd that fetches transaction details for a given hash.
+// Parameters:
+//   - ctx: The context for the API request.
+//   - hash: The transaction hash to fetch.
+//   - client: The Etherscan client to use for the request.
+//
+// Returns:
+//   - A tea.Cmd that will produce either a txMsg on success or an errMsg on failure.
 func fetchTransactionCmd(ctx context.Context, hash string, client *etherscan.Client) tea.Cmd {
 	return func() tea.Msg {
 		tx, err := client.FetchTransaction(ctx, hash)
@@ -306,12 +74,4 @@ func fetchTransactionCmd(ctx context.Context, hash string, client *etherscan.Cli
 		}
 		return txMsg{tx: tx}
 	}
-}
-
-type tickMsg time.Time
-
-func tickCmd() tea.Cmd {
-	return tea.Tick(time.Millisecond*100, func(t time.Time) tea.Msg {
-		return tickMsg(t)
-	})
 }
