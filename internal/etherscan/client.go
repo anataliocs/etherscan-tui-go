@@ -13,23 +13,26 @@ import (
 )
 
 type Transaction struct {
-	Hash             string `json:"hash"`
-	BlockNumber      string `json:"blockNumber"`
-	From             string `json:"from"`
-	To               string `json:"to"`
-	Value            string `json:"value"`
-	Gas              string `json:"gas"`
-	GasPrice         string `json:"gasPrice"`
-	Nonce            string `json:"nonce"`
-	TransactionIndex string `json:"transactionIndex"`
-	Input            string `json:"input"`
-	Type             string `json:"type"`
-	Confirmations    string `json:"confirmations,omitzero"`
-	Status           string `json:"status"`             // "Pending", "success", "failed", "dropped", "replaced"
-	Timestamp        string `json:"timestamp,omitzero"` // ISO 8601 format
-	GasUsed          string `json:"gasUsed"`
-	TransactionFee   string `json:"transactionFee"`
-	ToAccountType    string `json:"toAccountType,omitzero"` // "EOA" or "Smart Contract"
+	Hash                 string `json:"hash"`
+	BlockNumber          string `json:"blockNumber"`
+	From                 string `json:"from"`
+	To                   string `json:"to"`
+	Value                string `json:"value"`
+	Gas                  string `json:"gas"`
+	GasPrice             string `json:"gasPrice"`
+	Nonce                string `json:"nonce"`
+	TransactionIndex     string `json:"transactionIndex"`
+	Input                string `json:"input"`
+	Type                 string `json:"type"`
+	Confirmations        string `json:"confirmations,omitzero"`
+	Status               string `json:"status"`             // "Pending", "success", "failed", "dropped", "replaced"
+	Timestamp            string `json:"timestamp,omitzero"` // ISO 8601 format
+	GasUsed              string `json:"gasUsed"`
+	TransactionFee       string `json:"transactionFee"`
+	ToAccountType        string `json:"toAccountType,omitzero"` // "EOA" or "Smart Contract"
+	MaxFeePerGas         string `json:"maxFeePerGas,omitzero"`
+	MaxPriorityFeePerGas string `json:"maxPriorityFeePerGas,omitzero"`
+	BaseFeePerGas        string `json:"baseFeePerGas,omitzero"`
 }
 
 type Client struct {
@@ -131,19 +134,31 @@ func (c *Client) FetchTransaction(ctx context.Context, hash string) (*Transactio
 		tx.Confirmations = err.Error()
 	}
 
-	status, gasUsed, _ := c.FetchTransactionReceipt(ctx, hash)
+	status, gasUsed, _, _ := c.FetchTransactionReceipt(ctx, hash)
 	tx.Status = status
 	tx.GasUsed = hexToDecimal(gasUsed)
 	tx.TransactionFee = formatTransactionFee(gasUsed, hexGasPrice)
 
 	if hexBlockNumber != "" && hexBlockNumber != "0x0" {
-		timestamp, err := c.FetchBlockTimestamp(ctx, hexBlockNumber)
+		timestamp, baseFee, err := c.FetchBlockDetails(ctx, hexBlockNumber)
 		if err == nil {
 			tx.Timestamp = timestamp
+			tx.BaseFeePerGas = formatGwei(baseFee)
 		} else {
 			tx.Timestamp = err.Error()
 		}
 	}
+
+	if tx.MaxFeePerGas != "" {
+		tx.MaxFeePerGas = formatGwei(tx.MaxFeePerGas)
+	}
+	if tx.MaxPriorityFeePerGas != "" {
+		tx.MaxPriorityFeePerGas = formatGwei(tx.MaxPriorityFeePerGas)
+	}
+
+	// For legacy transactions, gas price = max fee = max priority fee (informally)
+	// But Etherscan usually doesn't show them if they are not EIP-1559.
+	// We'll leave them empty if not present in the original tx response.
 
 	if tx.To != "" && tx.To != "0x0000000000000000000000000000000000000000" {
 		isContract, err := c.IsContract(ctx, tx.To)
@@ -297,16 +312,16 @@ func stringToBigInt(s string) *big.Int {
 	return bi
 }
 
-func (c *Client) FetchBlockTimestamp(ctx context.Context, blockNumber string) (string, error) {
+func (c *Client) FetchBlockDetails(ctx context.Context, blockNumber string) (string, string, error) {
 	if c.apiKey == "" {
-		return "", errors.New("ETHERSCAN_API_KEY environment variable is not set")
+		return "", "", errors.New("ETHERSCAN_API_KEY environment variable is not set")
 	}
 
 	url := fmt.Sprintf("%s?chainid=%d&module=proxy&action=eth_getBlockByNumber&tag=%s&boolean=false&apikey=%s", c.baseURL, c.chainId, blockNumber, c.apiKey)
 
 	body, err := c.doRequestWithRetry(ctx, url)
 	if err != nil {
-		return "", err
+		return "", "", err
 	}
 
 	var proxyResp struct {
@@ -317,42 +332,42 @@ func (c *Client) FetchBlockTimestamp(ctx context.Context, blockNumber string) (s
 	}
 
 	if err := json.Unmarshal(body, &proxyResp); err != nil {
-		return "", fmt.Errorf("failed to decode response: %w", err)
+		return "", "", fmt.Errorf("failed to decode response: %w", err)
 	}
 
 	if proxyResp.Error != nil {
-		return "", errors.New(proxyResp.Error.Message)
+		return "", "", errors.New(proxyResp.Error.Message)
 	}
 
 	if len(proxyResp.Result) == 0 || string(proxyResp.Result) == "null" {
-		return "", errors.New("timestamp not found (block not found)")
+		return "", "", errors.New("block not found")
 	}
 
 	var block struct {
-		Timestamp string `json:"timestamp"`
+		Timestamp     string `json:"timestamp"`
+		BaseFeePerGas string `json:"baseFeePerGas"`
 	}
 
 	if err := json.Unmarshal(proxyResp.Result, &block); err != nil {
-		// If it's not a block object, check if it's a string (e.g., an error message)
 		var msg string
 		if json.Unmarshal(proxyResp.Result, &msg) == nil {
-			return "", fmt.Errorf("Etherscan API error: %s", msg)
+			return "", "", fmt.Errorf("Etherscan API error: %s", msg)
 		}
-		return "", fmt.Errorf("unexpected response format for block: %w", err)
+		return "", "", fmt.Errorf("unexpected response format for block: %w", err)
 	}
 
 	if block.Timestamp == "" {
-		return "", errors.New("timestamp not found in block")
+		return "", "", errors.New("timestamp not found in block")
 	}
 
 	// Parse hex timestamp
 	var unixTime int64
 	_, err = fmt.Sscanf(block.Timestamp, "0x%x", &unixTime)
 	if err != nil {
-		return "", fmt.Errorf("failed to parse timestamp: %w", err)
+		return "", "", fmt.Errorf("failed to parse timestamp: %w", err)
 	}
 
-	return time.Unix(unixTime, 0).UTC().Format(time.RFC3339), nil
+	return time.Unix(unixTime, 0).UTC().Format(time.RFC3339), block.BaseFeePerGas, nil
 }
 
 func (c *Client) IsContract(ctx context.Context, address string) (bool, error) {
@@ -386,22 +401,23 @@ func (c *Client) IsContract(ctx context.Context, address string) (bool, error) {
 	return proxyResp.Result != "0x" && proxyResp.Result != "" && proxyResp.Result != "null", nil
 }
 
-func (c *Client) FetchTransactionReceipt(ctx context.Context, hash string) (string, string, error) {
+func (c *Client) FetchTransactionReceipt(ctx context.Context, hash string) (string, string, string, error) {
 	if c.apiKey == "" {
-		return "", "", errors.New("ETHERSCAN_API_KEY environment variable is not set")
+		return "", "", "", errors.New("ETHERSCAN_API_KEY environment variable is not set")
 	}
 
 	url := fmt.Sprintf("%s?chainid=%d&module=proxy&action=eth_getTransactionReceipt&txhash=%s&apikey=%s", c.baseURL, c.chainId, hash, c.apiKey)
 
 	body, err := c.doRequestWithRetry(ctx, url)
 	if err != nil {
-		return "", "", err
+		return "", "", "", err
 	}
 
 	var proxyResp struct {
 		Result struct {
-			Status  string `json:"status"`
-			GasUsed string `json:"gasUsed"`
+			Status            string `json:"status"`
+			GasUsed           string `json:"gasUsed"`
+			EffectiveGasPrice string `json:"effectiveGasPrice"`
 		} `json:"result"`
 		Error *struct {
 			Message string `json:"message"`
@@ -409,15 +425,15 @@ func (c *Client) FetchTransactionReceipt(ctx context.Context, hash string) (stri
 	}
 
 	if err := json.Unmarshal(body, &proxyResp); err != nil {
-		return "", "", fmt.Errorf("failed to decode response: %w", err)
+		return "", "", "", fmt.Errorf("failed to decode response: %w", err)
 	}
 
 	if proxyResp.Error != nil {
-		return "", "", errors.New(proxyResp.Error.Message)
+		return "", "", "", errors.New(proxyResp.Error.Message)
 	}
 
 	if string(body) == `{"result":null}` || string(body) == `{"result": null}` {
-		return "Pending", "", nil
+		return "Pending", "", "", nil
 	}
 
 	status := "Pending"
@@ -427,7 +443,7 @@ func (c *Client) FetchTransactionReceipt(ctx context.Context, hash string) (stri
 		status = "failed"
 	}
 
-	return status, proxyResp.Result.GasUsed, nil
+	return status, proxyResp.Result.GasUsed, proxyResp.Result.EffectiveGasPrice, nil
 }
 
 func formatValue(hexStr string) string {
@@ -458,6 +474,17 @@ func hexToFloat(hexStr string, val float64) (*big.Float, string, bool) {
 	eth := new(big.Float).SetInt(bi)
 	eth.Quo(eth, big.NewFloat(val))
 	return eth, "", false
+}
+
+func formatGwei(hexStr string) string {
+	if hexStr == "" {
+		return ""
+	}
+	gwei, s, done := hexToFloat(hexStr, 1e9)
+	if done {
+		return s
+	}
+	return gwei.Text('f', -1)
 }
 
 func formatGasPrice(hexStr string) string {

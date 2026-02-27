@@ -325,7 +325,7 @@ func TestFetchTransactionReceipt(t *testing.T) {
 			client := NewClient("test-api-key")
 			client.baseURL = server.URL
 
-			status, gasUsed, err := client.FetchTransactionReceipt(context.Background(), "0xabc")
+			status, gasUsed, _, err := client.FetchTransactionReceipt(context.Background(), "0xabc")
 			if err != nil {
 				t.Fatalf("Unexpected error: %v", err)
 			}

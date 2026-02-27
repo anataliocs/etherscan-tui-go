@@ -1,6 +1,7 @@
 package ui
 
 import (
+	"cmp"
 	"context"
 	"fmt"
 	"strings"
@@ -185,6 +186,7 @@ func renderTransaction(tx *etherscan.Transaction) string {
 		{"Gas Usage", tx.GasUsed, valueStyle},
 		{"Gas Price", tx.GasPrice, valueStyle},
 		{"Transaction Fee", tx.TransactionFee, valueStyle},
+		{"Gas Fees", formatGasFees(tx), valueStyle},
 		{"Nonce", tx.Nonce, valueStyle},
 		{"Tx Index", tx.TransactionIndex, valueStyle},
 	}
@@ -250,6 +252,18 @@ func renderTransaction(tx *etherscan.Transaction) string {
 	}
 
 	return b.String()
+}
+
+func formatGasFees(tx *etherscan.Transaction) string {
+	if tx.MaxFeePerGas == "" && tx.MaxPriorityFeePerGas == "" && tx.BaseFeePerGas == "" {
+		return "n/a"
+	}
+
+	base := cmp.Or(tx.BaseFeePerGas, "n/a")
+	max := cmp.Or(tx.MaxFeePerGas, "n/a")
+	priority := cmp.Or(tx.MaxPriorityFeePerGas, "n/a")
+
+	return fmt.Sprintf("Base: %s Gwei | Max: %s Gwei | Max Priority: %s Gwei", base, max, priority)
 }
 
 func formatStatus(status string) string {
