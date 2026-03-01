@@ -35,7 +35,8 @@ var (
 			Foreground(lipgloss.Color("#FFFF00"))
 
 	successStyle = lipgloss.NewStyle().
-			Foreground(lipgloss.Color("#00FF00"))
+			Foreground(lipgloss.Color("#00FF00")).
+			Bold(true)
 
 	failedStyle = lipgloss.NewStyle().
 			Foreground(lipgloss.Color("#FF0000"))

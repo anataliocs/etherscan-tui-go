@@ -33,6 +33,7 @@ type Transaction struct {
 	MaxFeePerGas         string `json:"maxFeePerGas,omitzero"`
 	MaxPriorityFeePerGas string `json:"maxPriorityFeePerGas,omitzero"`
 	BaseFeePerGas        string `json:"baseFeePerGas,omitzero"`
+	BurntFees            string `json:"burntFees,omitzero"`
 }
 
 type Client struct {
@@ -144,6 +145,7 @@ func (c *Client) FetchTransaction(ctx context.Context, hash string) (*Transactio
 		if err == nil {
 			tx.Timestamp = timestamp
 			tx.BaseFeePerGas = formatGwei(baseFee)
+			tx.BurntFees = calculateBurntFees(gasUsed, baseFee)
 		} else {
 			tx.Timestamp = err.Error()
 		}
@@ -452,7 +454,7 @@ func formatValue(hexStr string) string {
 		return s
 	}
 
-	return fmt.Sprintf("%s ETH", eth.Text('f', -1))
+	return fmt.Sprintf("♦ %s ETH", eth.Text('f', -1))
 }
 
 func hexToFloat(hexStr string, val float64) (*big.Float, string, bool) {
@@ -495,7 +497,7 @@ func formatGasPrice(hexStr string) string {
 
 	eth, _, _ := hexToFloat(hexStr, 1e18)
 
-	return fmt.Sprintf("%s Gwei (%s ETH)", gwei.Text('f', -1), eth.Text('f', -1))
+	return fmt.Sprintf("⛽ %s Gwei (%s ETH)", gwei.Text('f', -1), eth.Text('f', -1))
 }
 
 func formatTransactionFee(gasUsedHex, gasPriceHex string) string {
@@ -521,6 +523,31 @@ func formatTransactionFee(gasUsedHex, gasPriceHex string) string {
 	feeEth.Quo(feeEth, big.NewFloat(1e18))
 
 	return fmt.Sprintf("%s ETH", feeEth.Text('f', -1))
+}
+
+func calculateBurntFees(gasUsedHex, baseFeeHex string) string {
+	if gasUsedHex == "" || baseFeeHex == "" {
+		return ""
+	}
+
+	gu := new(big.Int)
+	if _, ok := gu.SetString(strings.TrimPrefix(gasUsedHex, "0x"), 16); !ok {
+		return ""
+	}
+
+	bf := new(big.Int)
+	if _, ok := bf.SetString(strings.TrimPrefix(baseFeeHex, "0x"), 16); !ok {
+		return ""
+	}
+
+	// Burnt Fees = gasUsed * baseFee
+	burntWei := new(big.Int).Mul(gu, bf)
+
+	// 1 ETH = 10^18 Wei
+	burntEth := new(big.Float).SetInt(burntWei)
+	burntEth.Quo(burntEth, big.NewFloat(1e18))
+
+	return fmt.Sprintf("%s ETH 🔥", burntEth.Text('f', -1))
 }
 
 func hexToDecimal(hexStr string) string {

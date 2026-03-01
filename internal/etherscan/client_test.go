@@ -143,10 +143,10 @@ func TestFormatValue(t *testing.T) {
 		hex      string
 		expected string
 	}{
-		{"0xde0b6b3a7640000", "1 ETH"},   // 10^18
-		{"0x1bc16d674ec80000", "2 ETH"},  // 2 * 10^18
-		{"0x6f05b59d3b20000", "0.5 ETH"}, // 0.5 * 10^18
-		{"0x0", "0 ETH"},
+		{"0xde0b6b3a7640000", "♦ 1 ETH"},   // 10^18
+		{"0x1bc16d674ec80000", "♦ 2 ETH"},  // 2 * 10^18
+		{"0x6f05b59d3b20000", "♦ 0.5 ETH"}, // 0.5 * 10^18
+		{"0x0", "♦ 0 ETH"},
 		{"", ""},
 		{"123", "123"},
 	}
@@ -198,6 +198,28 @@ func TestFormatTransactionFee(t *testing.T) {
 		got := formatTransactionFee(tt.gasUsed, tt.gasPrice)
 		if got != tt.expected {
 			t.Errorf("formatTransactionFee(%s, %s) = %s; want %s", tt.gasUsed, tt.gasPrice, got, tt.expected)
+		}
+	}
+}
+
+func TestCalculateBurntFees(t *testing.T) {
+	tests := []struct {
+		gasUsed  string
+		baseFee  string
+		expected string
+	}{
+		{"0x5208", "0x3b9aca00", "🔥 0.000021 ETH"}, // 21000 * 1 Gwei
+		{"0x5208", "0x77359400", "🔥 0.000042 ETH"}, // 21000 * 2 Gwei
+		{"0x0", "0x3b9aca00", "🔥 0 ETH"},
+		{"0x5208", "0x0", "🔥 0 ETH"},
+		{"", "0x3b9aca00", ""},
+		{"0x5208", "", ""},
+	}
+
+	for _, tt := range tests {
+		got := calculateBurntFees(tt.gasUsed, tt.baseFee)
+		if got != tt.expected {
+			t.Errorf("calculateBurntFees(%s, %s) = %s; want %s", tt.gasUsed, tt.baseFee, got, tt.expected)
 		}
 	}
 }

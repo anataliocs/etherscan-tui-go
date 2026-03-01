@@ -24,7 +24,7 @@ func formatGasFees(tx *etherscan.Transaction) string {
 	max := cmp.Or(tx.MaxFeePerGas, "n/a")
 	priority := cmp.Or(tx.MaxPriorityFeePerGas, "n/a")
 
-	return fmt.Sprintf("Base: %s Gwei | Max: %s Gwei | Max Priority: %s Gwei", base, max, priority)
+	return fmt.Sprintf("⛽ Base: %s Gwei | Max: %s Gwei | Max Priority: %s Gwei", base, max, priority)
 }
 
 // formatStatus returns a human-readable string for the transaction status with symbols.
@@ -40,11 +40,11 @@ func formatStatus(status string) string {
 	case "failed":
 		return "✘ failed"
 	case "pending":
-		return "Pending"
+		return "⧖ Pending"
 	case "dropped":
-		return "dropped"
+		return "↓ dropped"
 	case "replaced":
-		return "replaced"
+		return "↺ replaced"
 	default:
 		return status
 	}
