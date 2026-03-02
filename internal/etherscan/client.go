@@ -6,41 +6,16 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"math/big"
 	"net/http"
 	"strings"
 	"time"
 )
 
-type Transaction struct {
-	Hash                 string `json:"hash"`
-	BlockNumber          string `json:"blockNumber"`
-	From                 string `json:"from"`
-	To                   string `json:"to"`
-	Value                string `json:"value"`
-	Gas                  string `json:"gas"`
-	GasPrice             string `json:"gasPrice"`
-	Nonce                string `json:"nonce"`
-	TransactionIndex     string `json:"transactionIndex"`
-	Input                string `json:"input"`
-	Type                 string `json:"type"`
-	Confirmations        string `json:"confirmations,omitzero"`
-	Status               string `json:"status"`             // "Pending", "success", "failed", "dropped", "replaced"
-	Timestamp            string `json:"timestamp,omitzero"` // ISO 8601 format
-	GasUsed              string `json:"gasUsed"`
-	TransactionFee       string `json:"transactionFee"`
-	ToAccountType        string `json:"toAccountType,omitzero"` // "EOA" or "Smart Contract"
-	MaxFeePerGas         string `json:"maxFeePerGas,omitzero"`
-	MaxPriorityFeePerGas string `json:"maxPriorityFeePerGas,omitzero"`
-	BaseFeePerGas        string `json:"baseFeePerGas,omitzero"`
-	BurntFees            string `json:"burntFees,omitzero"`
-}
-
-type Client struct {
-	apiKey  string
-	http    *http.Client
-	baseURL string
-	chainId int
+type ProxyResponse[T any] struct {
+	Result T `json:"result"`
+	Error  *struct {
+		Message string `json:"message"`
+	} `json:"error"`
 }
 
 func NewClient(apiKey string) *Client {
@@ -74,24 +49,9 @@ func (c *Client) FetchTransaction(ctx context.Context, hash string) (*Transactio
 		return nil, ctx.Err()
 	}
 
-	body, err := c.doRequestWithRetry(ctx, url)
+	proxyResp, err := doRequest[json.RawMessage](c, ctx, url)
 	if err != nil {
 		return nil, err
-	}
-
-	var proxyResp struct {
-		Result json.RawMessage `json:"result"`
-		Error  *struct {
-			Message string `json:"message"`
-		} `json:"error"`
-	}
-
-	if err := json.Unmarshal(body, &proxyResp); err != nil {
-		return nil, fmt.Errorf("failed to decode response: %w", err)
-	}
-
-	if proxyResp.Error != nil {
-		return nil, errors.New(proxyResp.Error.Message)
 	}
 
 	if len(proxyResp.Result) == 0 || string(proxyResp.Result) == "null" {
@@ -210,31 +170,24 @@ func (c *Client) doRequestWithRetry(ctx context.Context, url string) ([]byte, er
 		}
 
 		// Check for rate limit error in body
-		if strings.Contains(string(body), "Max calls per sec rate limit reached") {
-			lastErr = errors.New("Etherscan API error: Max calls per sec rate limit reached")
-			continue
-		}
-
-		// Also check proxy error object if it's there
-		var proxyResp struct {
-			Result json.RawMessage `json:"result"`
-			Error  *struct {
-				Message string `json:"message"`
-			} `json:"error"`
-		}
-		if json.Unmarshal(body, &proxyResp) == nil {
-			if proxyResp.Error != nil && strings.Contains(proxyResp.Error.Message, "rate limit") {
-				lastErr = errors.New(proxyResp.Error.Message)
-				continue
-			}
-			// Check if Result is a string and contains rate limit
-			var msg string
-			if json.Unmarshal(proxyResp.Result, &msg) == nil {
-				if strings.Contains(msg, "rate limit") {
-					lastErr = fmt.Errorf("Etherscan API error: %s", msg)
-					continue
+		bodyString := string(body)
+		if strings.Contains(bodyString, "Max calls per sec rate limit reached") || strings.Contains(bodyString, "rate limit") {
+			lastErr = fmt.Errorf("Etherscan API error: %s", strings.TrimSpace(bodyString))
+			if strings.Contains(bodyString, "{") {
+				// If it's JSON, try to extract message
+				var proxyResp ProxyResponse[json.RawMessage]
+				if json.Unmarshal(body, &proxyResp) == nil {
+					if proxyResp.Error != nil {
+						lastErr = fmt.Errorf("Etherscan API error: %s", proxyResp.Error.Message)
+					} else {
+						var msg string
+						if json.Unmarshal(proxyResp.Result, &msg) == nil {
+							lastErr = fmt.Errorf("Etherscan API error: %s", msg)
+						}
+					}
 				}
 			}
+			continue
 		}
 
 		return body, nil
@@ -250,24 +203,9 @@ func (c *Client) FetchLatestBlockNumber(ctx context.Context) (string, error) {
 
 	url := fmt.Sprintf("%s?chainid=%d&module=proxy&action=eth_blockNumber&apikey=%s", c.baseURL, c.chainId, c.apiKey)
 
-	body, err := c.doRequestWithRetry(ctx, url)
+	proxyResp, err := doRequest[string](c, ctx, url)
 	if err != nil {
 		return "", err
-	}
-
-	var proxyResp struct {
-		Result string `json:"result"`
-		Error  *struct {
-			Message string `json:"message"`
-		} `json:"error"`
-	}
-
-	if err := json.Unmarshal(body, &proxyResp); err != nil {
-		return "", fmt.Errorf("failed to decode response: %w", err)
-	}
-
-	if proxyResp.Error != nil {
-		return "", errors.New(proxyResp.Error.Message)
 	}
 
 	if proxyResp.Result == "" {
@@ -277,43 +215,6 @@ func (c *Client) FetchLatestBlockNumber(ctx context.Context) (string, error) {
 	return proxyResp.Result, nil
 }
 
-func calculateConfirmations(latestBlock, txBlock string) string {
-	if latestBlock == "" || txBlock == "" || txBlock == "0x0" {
-		return ""
-	}
-
-	latest := stringToBigInt(latestBlock)
-	tx := stringToBigInt(txBlock)
-
-	if latest == nil || tx == nil {
-		return "error"
-	}
-
-	diff := new(big.Int).Sub(latest, tx)
-	if diff.Sign() < 0 {
-		return "0"
-	}
-
-	// confirmations = latest - tx + 1
-	conf := new(big.Int).Add(diff, big.NewInt(1))
-	return conf.String()
-}
-
-func stringToBigInt(s string) *big.Int {
-	bi := new(big.Int)
-	base := 10
-	trimmed := s
-	if strings.HasPrefix(s, "0x") {
-		base = 16
-		trimmed = strings.TrimPrefix(s, "0x")
-	}
-
-	if _, ok := bi.SetString(trimmed, base); !ok {
-		return nil
-	}
-	return bi
-}
-
 func (c *Client) FetchBlockDetails(ctx context.Context, blockNumber string) (string, string, error) {
 	if c.apiKey == "" {
 		return "", "", errors.New("ETHERSCAN_API_KEY environment variable is not set")
@@ -321,24 +222,9 @@ func (c *Client) FetchBlockDetails(ctx context.Context, blockNumber string) (str
 
 	url := fmt.Sprintf("%s?chainid=%d&module=proxy&action=eth_getBlockByNumber&tag=%s&boolean=false&apikey=%s", c.baseURL, c.chainId, blockNumber, c.apiKey)
 
-	body, err := c.doRequestWithRetry(ctx, url)
+	proxyResp, err := doRequest[json.RawMessage](c, ctx, url)
 	if err != nil {
 		return "", "", err
-	}
-
-	var proxyResp struct {
-		Result json.RawMessage `json:"result"`
-		Error  *struct {
-			Message string `json:"message"`
-		} `json:"error"`
-	}
-
-	if err := json.Unmarshal(body, &proxyResp); err != nil {
-		return "", "", fmt.Errorf("failed to decode response: %w", err)
-	}
-
-	if proxyResp.Error != nil {
-		return "", "", errors.New(proxyResp.Error.Message)
 	}
 
 	if len(proxyResp.Result) == 0 || string(proxyResp.Result) == "null" {
@@ -379,24 +265,9 @@ func (c *Client) IsContract(ctx context.Context, address string) (bool, error) {
 
 	url := fmt.Sprintf("%s?chainid=%d&module=proxy&action=eth_getCode&address=%s&tag=latest&apikey=%s", c.baseURL, c.chainId, address, c.apiKey)
 
-	body, err := c.doRequestWithRetry(ctx, url)
+	proxyResp, err := doRequest[string](c, ctx, url)
 	if err != nil {
 		return false, err
-	}
-
-	var proxyResp struct {
-		Result string `json:"result"`
-		Error  *struct {
-			Message string `json:"message"`
-		} `json:"error"`
-	}
-
-	if err := json.Unmarshal(body, &proxyResp); err != nil {
-		return false, fmt.Errorf("failed to decode response: %w", err)
-	}
-
-	if proxyResp.Error != nil {
-		return false, errors.New(proxyResp.Error.Message)
 	}
 
 	// eth_getCode returns "0x" if the address is an EOA
@@ -410,31 +281,18 @@ func (c *Client) FetchTransactionReceipt(ctx context.Context, hash string) (stri
 
 	url := fmt.Sprintf("%s?chainid=%d&module=proxy&action=eth_getTransactionReceipt&txhash=%s&apikey=%s", c.baseURL, c.chainId, hash, c.apiKey)
 
-	body, err := c.doRequestWithRetry(ctx, url)
+	type receiptResult struct {
+		Status            string `json:"status"`
+		GasUsed           string `json:"gasUsed"`
+		EffectiveGasPrice string `json:"effectiveGasPrice"`
+	}
+
+	proxyResp, err := doRequest[receiptResult](c, ctx, url)
 	if err != nil {
 		return "", "", "", err
 	}
 
-	var proxyResp struct {
-		Result struct {
-			Status            string `json:"status"`
-			GasUsed           string `json:"gasUsed"`
-			EffectiveGasPrice string `json:"effectiveGasPrice"`
-		} `json:"result"`
-		Error *struct {
-			Message string `json:"message"`
-		} `json:"error"`
-	}
-
-	if err := json.Unmarshal(body, &proxyResp); err != nil {
-		return "", "", "", fmt.Errorf("failed to decode response: %w", err)
-	}
-
-	if proxyResp.Error != nil {
-		return "", "", "", errors.New(proxyResp.Error.Message)
-	}
-
-	if string(body) == `{"result":null}` || string(body) == `{"result": null}` {
+	if proxyResp.Result.Status == "" && proxyResp.Result.GasUsed == "" {
 		return "Pending", "", "", nil
 	}
 
@@ -448,147 +306,20 @@ func (c *Client) FetchTransactionReceipt(ctx context.Context, hash string) (stri
 	return status, proxyResp.Result.GasUsed, proxyResp.Result.EffectiveGasPrice, nil
 }
 
-func formatValue(hexStr string) string {
-	eth, s, done := hexToFloat(hexStr, 1e18)
-	if done {
-		return s
+func doRequest[T any](c *Client, ctx context.Context, url string) (*ProxyResponse[T], error) {
+	body, err := c.doRequestWithRetry(ctx, url)
+	if err != nil {
+		return nil, err
 	}
 
-	return fmt.Sprintf("♦ %s ETH", eth.Text('f', -1))
-}
-
-func hexToFloat(hexStr string, val float64) (*big.Float, string, bool) {
-	if hexStr == "" || !strings.HasPrefix(hexStr, "0x") {
-		return nil, hexStr, true
+	var proxyResp ProxyResponse[T]
+	if err := json.Unmarshal(body, &proxyResp); err != nil {
+		return nil, fmt.Errorf("failed to decode response: %w", err)
 	}
 
-	trimmed := strings.TrimPrefix(hexStr, "0x")
-	if trimmed == "" {
-		return nil, "0 ETH", true
+	if proxyResp.Error != nil {
+		return nil, errors.New(proxyResp.Error.Message)
 	}
 
-	bi := new(big.Int)
-	if _, ok := bi.SetString(trimmed, 16); !ok {
-		return nil, hexStr, true
-	}
-
-	// 1 ETH = 10^18 Wei
-	eth := new(big.Float).SetInt(bi)
-	eth.Quo(eth, big.NewFloat(val))
-	return eth, "", false
-}
-
-func formatGwei(hexStr string) string {
-	if hexStr == "" {
-		return ""
-	}
-	gwei, s, done := hexToFloat(hexStr, 1e9)
-	if done {
-		return s
-	}
-	return gwei.Text('f', -1)
-}
-
-func formatGasPrice(hexStr string) string {
-	gwei, s, done := hexToFloat(hexStr, 1e9)
-	if done {
-		return s
-	}
-
-	eth, _, _ := hexToFloat(hexStr, 1e18)
-
-	return fmt.Sprintf("⛽ %s Gwei (%s ETH)", gwei.Text('f', -1), eth.Text('f', -1))
-}
-
-func formatTransactionFee(gasUsedHex, gasPriceHex string) string {
-	if gasUsedHex == "" || gasPriceHex == "" {
-		return ""
-	}
-
-	gu := new(big.Int)
-	if _, ok := gu.SetString(strings.TrimPrefix(gasUsedHex, "0x"), 16); !ok {
-		return ""
-	}
-
-	gp := new(big.Int)
-	if _, ok := gp.SetString(strings.TrimPrefix(gasPriceHex, "0x"), 16); !ok {
-		return ""
-	}
-
-	// Fee = gasUsed * gasPrice
-	feeWei := new(big.Int).Mul(gu, gp)
-
-	// 1 ETH = 10^18 Wei
-	feeEth := new(big.Float).SetInt(feeWei)
-	feeEth.Quo(feeEth, big.NewFloat(1e18))
-
-	return fmt.Sprintf("%s ETH", feeEth.Text('f', -1))
-}
-
-func calculateBurntFees(gasUsedHex, baseFeeHex string) string {
-	if gasUsedHex == "" || baseFeeHex == "" {
-		return ""
-	}
-
-	gu := new(big.Int)
-	if _, ok := gu.SetString(strings.TrimPrefix(gasUsedHex, "0x"), 16); !ok {
-		return ""
-	}
-
-	bf := new(big.Int)
-	if _, ok := bf.SetString(strings.TrimPrefix(baseFeeHex, "0x"), 16); !ok {
-		return ""
-	}
-
-	// Burnt Fees = gasUsed * baseFee
-	burntWei := new(big.Int).Mul(gu, bf)
-
-	// 1 ETH = 10^18 Wei
-	burntEth := new(big.Float).SetInt(burntWei)
-	burntEth.Quo(burntEth, big.NewFloat(1e18))
-
-	return fmt.Sprintf("%s ETH 🔥", burntEth.Text('f', -1))
-}
-
-func hexToDecimal(hexStr string) string {
-	if hexStr == "" || !strings.HasPrefix(hexStr, "0x") {
-		return hexStr
-	}
-
-	trimmed := strings.TrimPrefix(hexStr, "0x")
-	if trimmed == "" {
-		return "0"
-	}
-
-	// Use big.Int as Ethereum values can exceed uint64 (e.g., Value in Wei)
-	bi := new(big.Int)
-	if _, ok := bi.SetString(trimmed, 16); !ok {
-		return hexStr
-	}
-
-	return bi.String()
-}
-
-func formatTransactionType(hexStr string) string {
-	if hexStr == "" || hexStr == "0x" {
-		return "0 (Legacy)"
-	}
-	bi := stringToBigInt(hexStr)
-	if bi == nil {
-		return hexStr
-	}
-
-	val := bi.Int64()
-	switch val {
-	case 0:
-		return "0 (Legacy)"
-	case 1:
-		return "1 (Access List)"
-	case 2:
-		return "2 (EIP-1559)"
-	case 3:
-		return "3 (EIP-4844)"
-	default:
-		return fmt.Sprintf("%d", val)
-	}
+	return &proxyResp, nil
 }

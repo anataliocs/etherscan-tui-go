@@ -164,10 +164,10 @@ func TestFormatGasPrice(t *testing.T) {
 		hex      string
 		expected string
 	}{
-		{"0x3b9aca00", "1 Gwei (0.000000001 ETH)"},
-		{"0x77359400", "2 Gwei (0.000000002 ETH)"},
-		{"0x1dcd6500", "0.5 Gwei (0.0000000005 ETH)"},
-		{"0x0", "0 Gwei (0 ETH)"},
+		{"0x3b9aca00", "⛽ 1 Gwei (0.000000001 ETH)"},
+		{"0x77359400", "⛽ 2 Gwei (0.000000002 ETH)"},
+		{"0x1dcd6500", "⛽ 0.5 Gwei (0.0000000005 ETH)"},
+		{"0x0", "⛽ 0 Gwei (0 ETH)"},
 		{"", ""},
 		{"123", "123"},
 	}
@@ -208,10 +208,10 @@ func TestCalculateBurntFees(t *testing.T) {
 		baseFee  string
 		expected string
 	}{
-		{"0x5208", "0x3b9aca00", "🔥 0.000021 ETH"}, // 21000 * 1 Gwei
-		{"0x5208", "0x77359400", "🔥 0.000042 ETH"}, // 21000 * 2 Gwei
-		{"0x0", "0x3b9aca00", "🔥 0 ETH"},
-		{"0x5208", "0x0", "🔥 0 ETH"},
+		{"0x5208", "0x3b9aca00", "0.000021 ETH 🔥"}, // 21000 * 1 Gwei
+		{"0x5208", "0x77359400", "0.000042 ETH 🔥"}, // 21000 * 2 Gwei
+		{"0x0", "0x3b9aca00", "0 ETH 🔥"},
+		{"0x5208", "0x0", "0 ETH 🔥"},
 		{"", "0x3b9aca00", ""},
 		{"0x5208", "", ""},
 	}
