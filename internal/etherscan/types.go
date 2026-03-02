@@ -1,7 +1,9 @@
+// Package etherscan contains type definitions for Etherscan API entities.
 package etherscan
 
 import "net/http"
 
+// Transaction represents an Ethereum transaction as returned and formatted for the TUI.
 type Transaction struct {
 	Hash                 string `json:"hash"`
 	BlockNumber          string `json:"blockNumber"`
@@ -26,9 +28,17 @@ type Transaction struct {
 	BurntFees            string `json:"burntFees,omitzero"`
 }
 
+// Client is a client for the Etherscan API.
 type Client struct {
 	apiKey  string
 	http    *http.Client
 	baseURL string
 	chainId int
+}
+
+// receiptResult represents the result of a transaction receipt request.
+type receiptResult struct {
+	Status            string `json:"status"`
+	GasUsed           string `json:"gasUsed"`
+	EffectiveGasPrice string `json:"effectiveGasPrice"`
 }

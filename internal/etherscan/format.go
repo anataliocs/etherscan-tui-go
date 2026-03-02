@@ -1,3 +1,4 @@
+// Package etherscan provides formatting utilities for Ethereum-related data.
 package etherscan
 
 import (
@@ -6,6 +7,12 @@ import (
 	"strings"
 )
 
+// formatValue converts a hex string (Wei) to a human-readable ETH string.
+// Parameters:
+//   - hexStr: The hex value in Wei.
+//
+// Returns:
+//   - A formatted string with the ETH symbol and value.
 func formatValue(hexStr string) string {
 	eth, s, done := hexToFloat(hexStr, 1e18)
 	if done {
@@ -15,6 +22,12 @@ func formatValue(hexStr string) string {
 	return fmt.Sprintf("♦ %s ETH", eth.Text('f', -1))
 }
 
+// formatGwei converts a hex string (Wei) to Gwei as a string.
+// Parameters:
+//   - hexStr: The hex value in Wei.
+//
+// Returns:
+//   - The value in Gwei as a decimal string.
 func formatGwei(hexStr string) string {
 	if hexStr == "" {
 		return ""
@@ -26,6 +39,12 @@ func formatGwei(hexStr string) string {
 	return gwei.Text('f', -1)
 }
 
+// formatGasPrice converts a hex string (Wei) to a formatted Gwei and ETH gas price string.
+// Parameters:
+//   - hexStr: The hex value in Wei.
+//
+// Returns:
+//   - A formatted string with gas pump emoji, Gwei value, and ETH value.
 func formatGasPrice(hexStr string) string {
 	gwei, s, done := hexToFloat(hexStr, 1e9)
 	if done {
@@ -37,6 +56,13 @@ func formatGasPrice(hexStr string) string {
 	return fmt.Sprintf("⛽ %s Gwei (%s ETH)", gwei.Text('f', -1), eth.Text('f', -1))
 }
 
+// formatTransactionFee calculates and formats the transaction fee in ETH.
+// Parameters:
+//   - gasUsedHex: The gas used in hex.
+//   - gasPriceHex: The gas price in hex.
+//
+// Returns:
+//   - The calculated fee in ETH as a formatted string.
 func formatTransactionFee(gasUsedHex, gasPriceHex string) string {
 	if gasUsedHex == "" || gasPriceHex == "" {
 		return ""
@@ -62,6 +88,12 @@ func formatTransactionFee(gasUsedHex, gasPriceHex string) string {
 	return fmt.Sprintf("%s ETH", feeEth.Text('f', -1))
 }
 
+// formatTransactionType returns a human-readable description for an Ethereum transaction type.
+// Parameters:
+//   - hexStr: The transaction type in hex.
+//
+// Returns:
+//   - A human-readable description (e.g., "2 (EIP-1559)").
 func formatTransactionType(hexStr string) string {
 	if hexStr == "" || hexStr == "0x" {
 		return "0 (Legacy)"

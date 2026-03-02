@@ -1,3 +1,4 @@
+// Package etherscan contains tests for the Etherscan client.
 package etherscan
 
 import (

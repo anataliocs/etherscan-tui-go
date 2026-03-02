@@ -1,3 +1,4 @@
+// Package etherscan provides conversion utilities for Ethereum data types.
 package etherscan
 
 import (
@@ -6,6 +7,15 @@ import (
 	"strings"
 )
 
+// hexToFloat converts a hex string to a big.Float using the given divisor.
+// Parameters:
+//   - hexStr: The hex value.
+//   - val: The divisor (e.g., 1e18 for ETH, 1e9 for Gwei).
+//
+// Returns:
+//   - The value as a big.Float.
+//   - A backup string if conversion is not needed/failed.
+//   - A boolean indicating if the conversion is done or skipped.
 func hexToFloat(hexStr string, val float64) (*big.Float, string, bool) {
 	if hexStr == "" || !strings.HasPrefix(hexStr, "0x") {
 		return nil, hexStr, true
@@ -27,6 +37,13 @@ func hexToFloat(hexStr string, val float64) (*big.Float, string, bool) {
 	return eth, "", false
 }
 
+// calculateBurntFees calculates burnt fees in ETH given gas used and base fee.
+// Parameters:
+//   - gasUsedHex: The gas used in hex.
+//   - baseFeeHex: The base fee in hex.
+//
+// Returns:
+//   - The calculated burnt fees in ETH as a formatted string with the fire emoji.
 func calculateBurntFees(gasUsedHex, baseFeeHex string) string {
 	if gasUsedHex == "" || baseFeeHex == "" {
 		return ""
@@ -52,6 +69,12 @@ func calculateBurntFees(gasUsedHex, baseFeeHex string) string {
 	return fmt.Sprintf("%s ETH 🔥", burntEth.Text('f', -1))
 }
 
+// hexToDecimal converts a hex string to its decimal string representation.
+// Parameters:
+//   - hexStr: The hex value.
+//
+// Returns:
+//   - The decimal string representation.
 func hexToDecimal(hexStr string) string {
 	if hexStr == "" || !strings.HasPrefix(hexStr, "0x") {
 		return hexStr
@@ -71,6 +94,13 @@ func hexToDecimal(hexStr string) string {
 	return bi.String()
 }
 
+// calculateConfirmations calculates the number of confirmations for a transaction block.
+// Parameters:
+//   - latestBlock: The latest block number (hex or decimal).
+//   - txBlock: The transaction block number (hex or decimal).
+//
+// Returns:
+//   - The number of confirmations as a decimal string.
 func calculateConfirmations(latestBlock, txBlock string) string {
 	if latestBlock == "" || txBlock == "" || txBlock == "0x0" {
 		return ""
@@ -93,6 +123,12 @@ func calculateConfirmations(latestBlock, txBlock string) string {
 	return conf.String()
 }
 
+// stringToBigInt converts a hex or decimal string to a *big.Int.
+// Parameters:
+//   - s: The hex (with "0x" prefix) or decimal string.
+//
+// Returns:
+//   - A pointer to the big.Int or nil if conversion fails.
 func stringToBigInt(s string) *big.Int {
 	bi := new(big.Int)
 	base := 10
