@@ -248,6 +248,33 @@ func TestFormatTransactionType(t *testing.T) {
 	}
 }
 
+func TestCalculateSavings(t *testing.T) {
+	tests := []struct {
+		gasUsed        string
+		maxFee         string
+		effectivePrice string
+		expected       string
+	}{
+		// 10 Gwei = 10,000,000,000 Wei = 0x2540BE400
+		// 5 Gwei = 5,000,000,000 Wei = 0x12A05F200
+		// diff = 5 Gwei = 5,000,000,000
+		// gasUsed = 21000 (0x5208)
+		// total = 5,000,000,000 * 21,000 = 105,000,000,000,000 Wei
+		// 105,000,000,000,000 / 1e18 = 0.000105 ETH
+		{"0x5208", "0x2540be400", "0x12a05f200", "0.000105 ETH"},
+		{"0x5208", "0x12a05f200", "0x2540be400", ""}, // negative savings
+		{"0x5208", "0x12a05f200", "0x12a05f200", ""}, // zero savings
+		{"", "0x1", "0x1", ""},
+	}
+
+	for _, tt := range tests {
+		got := calculateSavings(tt.gasUsed, tt.maxFee, tt.effectivePrice)
+		if got != tt.expected {
+			t.Errorf("calculateSavings(%s, %s, %s) = %s; want %s", tt.gasUsed, tt.maxFee, tt.effectivePrice, got, tt.expected)
+		}
+	}
+}
+
 func TestFetchTransaction_ResultAsString(t *testing.T) {
 	// This JSON simulates the case where 'result' is a string instead of an object.
 	// We want to make sure we handle it gracefully and don't fail with "json: cannot unmarshal string..."

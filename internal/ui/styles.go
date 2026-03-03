@@ -49,4 +49,8 @@ var (
 
 	darkGrayStyle = lipgloss.NewStyle().
 			Foreground(lipgloss.Color("#555555"))
+
+	savingsStyle = lipgloss.NewStyle().
+			Foreground(lipgloss.Color("#00FF00")).
+			Italic(true)
 )

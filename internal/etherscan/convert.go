@@ -69,6 +69,45 @@ func calculateBurntFees(gasUsedHex, baseFeeHex string) string {
 	return fmt.Sprintf("%s ETH 🔥", burntEth.Text('f', -1))
 }
 
+// calculateSavings calculates the ETH saved when MaxFeePerGas exceeds EffectiveGasPrice.
+// Parameters:
+//   - gasUsedHex: The gas used in hex.
+//   - maxFeeHex: The max fee per gas in hex (willingness to pay).
+//   - effectivePriceHex: The actual gas price paid in hex.
+//
+// Returns:
+//   - The calculated savings in ETH as a formatted string.
+func calculateSavings(gasUsedHex, maxFeeHex, effectivePriceHex string) string {
+	if gasUsedHex == "" || maxFeeHex == "" || effectivePriceHex == "" {
+		return ""
+	}
+
+	gu := stringToBigInt(gasUsedHex)
+	mf := stringToBigInt(maxFeeHex)
+	ep := stringToBigInt(effectivePriceHex)
+
+	if gu == nil || mf == nil || ep == nil {
+		return ""
+	}
+
+	// Savings per gas unit = maxFee - effectivePrice
+	savingsPerGas := new(big.Int).Sub(mf, ep)
+
+	// If savings are 0 or less, no savings occurred.
+	if savingsPerGas.Sign() <= 0 {
+		return ""
+	}
+
+	// Total savings = savingsPerGas * gasUsed
+	totalSavingsWei := new(big.Int).Mul(savingsPerGas, gu)
+
+	// 1 ETH = 10^18 Wei
+	savingsEth := new(big.Float).SetInt(totalSavingsWei)
+	savingsEth.Quo(savingsEth, big.NewFloat(1e18))
+
+	return fmt.Sprintf("%s ETH 💸", savingsEth.Text('f', -1))
+}
+
 // hexToDecimal converts a hex string to its decimal string representation.
 // Parameters:
 //   - hexStr: The hex value.

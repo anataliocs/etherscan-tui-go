@@ -26,6 +26,7 @@ type Transaction struct {
 	MaxPriorityFeePerGas string `json:"maxPriorityFeePerGas,omitzero"`
 	BaseFeePerGas        string `json:"baseFeePerGas,omitzero"`
 	BurntFees            string `json:"burntFees,omitzero"`
+	Savings              string `json:"savings,omitzero"`
 }
 
 // Client is a client for the Etherscan API.

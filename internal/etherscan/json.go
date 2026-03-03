@@ -46,6 +46,7 @@ func buildTransaction(ctx context.Context, hash string, proxyResp *ProxyResponse
 
 	// Keep hex fields for fee calculation
 	hexGasPrice := tx.GasPrice
+	hexMaxFeePerGas := tx.MaxFeePerGas
 
 	// Convert hex fields to decimal
 	tx.BlockNumber = hexToDecimal(tx.BlockNumber)
@@ -63,10 +64,14 @@ func buildTransaction(ctx context.Context, hash string, proxyResp *ProxyResponse
 		tx.Confirmations = err.Error()
 	}
 
-	status, gasUsed, _, _ := c.FetchTransactionReceipt(ctx, hash)
+	status, gasUsed, effectiveGasPrice, _ := c.FetchTransactionReceipt(ctx, hash)
 	tx.Status = status
 	tx.GasUsed = hexToDecimal(gasUsed)
 	tx.TransactionFee = formatTransactionFee(gasUsed, hexGasPrice)
+
+	if hexMaxFeePerGas != "" {
+		tx.Savings = calculateSavings(gasUsed, hexMaxFeePerGas, effectiveGasPrice)
+	}
 
 	if hexBlockNumber != "" && hexBlockNumber != "0x0" {
 		timestamp, baseFee, err := c.FetchBlockDetails(ctx, hexBlockNumber)
