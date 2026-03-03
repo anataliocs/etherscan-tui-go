@@ -32,17 +32,29 @@ var (
 			MarginTop(1)
 
 	pendingStyle = lipgloss.NewStyle().
-			Foreground(lipgloss.Color("#FFFF00"))
+			Foreground(lipgloss.Color("#FFFF00")).
+			Border(lipgloss.NormalBorder()).
+			BorderForeground(lipgloss.Color("#FFFF00")).
+			Padding(0, 1)
 
 	successStyle = lipgloss.NewStyle().
 			Foreground(lipgloss.Color("#00FF00")).
-			Bold(true)
+			Bold(true).
+			Border(lipgloss.NormalBorder()).
+			BorderForeground(lipgloss.Color("#00FF00")).
+			Padding(0, 1)
 
 	failedStyle = lipgloss.NewStyle().
-			Foreground(lipgloss.Color("#FF0000"))
+			Foreground(lipgloss.Color("#FF0000")).
+			Border(lipgloss.NormalBorder()).
+			BorderForeground(lipgloss.Color("#FF0000")).
+			Padding(0, 1)
 
 	droppedStyle = lipgloss.NewStyle().
-			Foreground(lipgloss.Color("#800080"))
+			Foreground(lipgloss.Color("#800080")).
+			Border(lipgloss.NormalBorder()).
+			BorderForeground(lipgloss.Color("#800080")).
+			Padding(0, 1)
 
 	lightGrayStyle = lipgloss.NewStyle().
 			Foreground(lipgloss.Color("#888888"))

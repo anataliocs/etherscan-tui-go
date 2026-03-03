@@ -24,8 +24,8 @@ func renderTransaction(tx *etherscan.Transaction) string {
 		value string
 		style lipgloss.Style
 	}{
-		{"Hash", tx.Hash, valueStyle},
 		{"Status", formatStatus(tx.Status), getStatusStyle(tx.Status)},
+		{"Hash", tx.Hash, valueStyle},
 		{"Type", tx.Type, valueStyle},
 		{"Timestamp", tx.Timestamp, valueStyle},
 		{"Block Number", tx.BlockNumber, valueStyle},
@@ -50,6 +50,11 @@ func renderTransaction(tx *etherscan.Transaction) string {
 
 		var renderedValue string
 		switch {
+		case item.label == "Status":
+			// For the status field, we use horizontal join to align the multi-line border with the label
+			statusBox := item.style.Render(item.value)
+			b.WriteString(lipgloss.JoinHorizontal(lipgloss.Top, labelStyle.Render(item.label+":"), " ", statusBox) + "\n")
+			continue
 		case item.label == "Gas Price" && strings.Contains(item.value, "("):
 			parts := strings.Split(item.value, " (")
 			gwei := parts[0]
