@@ -57,6 +57,13 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				m.textInput.Focus()
 				return m, nil
 			}
+		case tea.KeyRunes:
+			if (strings.Contains(string(msg.Runes), "R") || strings.Contains(string(msg.Runes), "r")) && m.state == resultState {
+				hash := m.tx.Hash
+				m.state = loadingState
+				m.progress.SetPercent(0)
+				return m, tea.Batch(fetchTransactionCmd(context.Background(), hash, m.client), tickCmd())
+			}
 		}
 	case txMsg:
 		m.tx = msg.tx

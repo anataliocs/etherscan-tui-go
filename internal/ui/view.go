@@ -31,7 +31,7 @@ func (m Model) View() string {
 		)
 	case resultState:
 		s = renderTransaction(m.tx)
-		s += helpStyle.Render("\n\npress enter to search again • esc to quit")
+		s += helpStyle.Render("\n\n(r) refresh • (enter) search again • (esc) quit")
 	case errorState:
 		s = fmt.Sprintf(
 			"%s\n\n%s",
