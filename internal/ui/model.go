@@ -19,16 +19,19 @@ const (
 )
 
 type Model struct {
-	state     sessionState
-	textInput textinput.Model
-	progress  progress.Model
-	tx        *etherscan.Transaction
-	err       error
-	client    *etherscan.Client
-	chainID   int
+	state           sessionState
+	textInput       textinput.Model
+	progress        progress.Model
+	tx              *etherscan.Transaction
+	err             error
+	client          *etherscan.Client
+	chainID         int
+	latestBlock     string
+	isFetchingBlock bool
 }
 
 type txMsg struct{ tx *etherscan.Transaction }
+type latestBlockMsg struct{ blockNumber string }
 type errMsg error
 
 // New creates a new Model with the given Etherscan client.
@@ -45,18 +48,21 @@ func New(client *etherscan.Client) Model {
 	ti.Width = 70
 
 	return Model{
-		state:     inputState,
-		textInput: ti,
-		progress:  progress.New(progress.WithDefaultGradient()),
-		client:    client,
-		chainID:   client.ChainID(),
+		state:           inputState,
+		textInput:       ti,
+		progress:        progress.New(progress.WithDefaultGradient()),
+		client:          client,
+		chainID:         client.ChainID(),
+		isFetchingBlock: true,
 	}
 }
 
-// Init initializes the Model, starting the blinking cursor for the text input.
+// Init initializes the Model, starting the blinking cursor for the text input and fetching the latest block number.
 // Returns:
 //   - A tea.Cmd to be executed on initialization.
-func (m Model) Init() tea.Cmd { return textinput.Blink }
+func (m Model) Init() tea.Cmd {
+	return tea.Batch(textinput.Blink, fetchLatestBlockCmd(context.Background(), m.client))
+}
 
 // fetchTransactionCmd returns a tea.Cmd that fetches transaction details for a given hash.
 // Parameters:
@@ -73,5 +79,22 @@ func fetchTransactionCmd(ctx context.Context, hash string, client *etherscan.Cli
 			return errMsg(err)
 		}
 		return txMsg{tx: tx}
+	}
+}
+
+// fetchLatestBlockCmd returns a tea.Cmd that fetches the latest block number.
+// Parameters:
+//   - ctx: The context for the API request.
+//   - client: The Etherscan client to use for the request.
+//
+// Returns:
+//   - A tea.Cmd that will produce a latestBlockMsg on success or an errMsg on failure.
+func fetchLatestBlockCmd(ctx context.Context, client *etherscan.Client) tea.Cmd {
+	return func() tea.Msg {
+		blockNum, err := client.FetchLatestBlockNumber(ctx)
+		if err != nil {
+			return errMsg(err)
+		}
+		return latestBlockMsg{blockNumber: blockNum}
 	}
 }

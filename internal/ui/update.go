@@ -38,6 +38,8 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 					m.chainID = 1
 				}
 				m.client.SetChainID(m.chainID)
+				m.isFetchingBlock = true
+				return m, fetchLatestBlockCmd(context.Background(), m.client)
 			}
 		case tea.KeyEnter:
 			if m.state == inputState {
@@ -70,8 +72,13 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.state = resultState
 		m.progress.SetPercent(1.0)
 		return m, nil
+	case latestBlockMsg:
+		m.latestBlock = msg.blockNumber
+		m.isFetchingBlock = false
+		return m, nil
 	case errMsg:
 		m.err = msg
+		m.isFetchingBlock = false
 		m.state = errorState
 		return m, nil
 	case tickMsg:

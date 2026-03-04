@@ -1,6 +1,9 @@
 package ui
 
-import "fmt"
+import (
+	"awesomeProject/internal/etherscan"
+	"fmt"
+)
 
 // View renders the current state of the Model as a string.
 // Returns:
@@ -16,9 +19,19 @@ func (m Model) View() string {
 			networkToggle = inactiveStyle.Render("Mainnet") + " | " + activeStyle.Render("Sepolia")
 		}
 
+		latestBlockDisplay := "Total Transactions: "
+		if m.isFetchingBlock {
+			latestBlockDisplay += "Loading..."
+		} else if m.latestBlock != "" {
+			latestBlockDisplay += etherscan.FormatLatestBlock(m.latestBlock)
+		} else {
+			latestBlockDisplay += "n/a"
+		}
+
 		s = fmt.Sprintf(
-			"%s\n\n%s\n\n%s\n\n%s",
+			"%s\n\n%s\n\n%s\n\n%s\n\n%s",
 			titleStyle.Render("Ethereum Transaction Explorer"),
+			latestBlockDisplay,
 			"Network: "+networkToggle,
 			"Enter transaction hash:",
 			m.textInput.View(),

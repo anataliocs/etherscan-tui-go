@@ -117,3 +117,13 @@ func formatTransactionType(hexStr string) string {
 		return fmt.Sprintf("%d", val)
 	}
 }
+
+// FormatLatestBlock converts the latest block number from hex to decimal string.
+// Parameters:
+//   - hexStr: The latest block number in hex (with "0x" prefix).
+//
+// Returns:
+//   - The latest block number as a decimal string.
+func FormatLatestBlock(hexStr string) string {
+	return hexToDecimal(hexStr)
+}
