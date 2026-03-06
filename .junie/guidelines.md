@@ -59,3 +59,27 @@ This project follows modern Go idioms and best practices as of Go 1.26. All cont
 ### Dependencies
 - Keep dependencies minimal.
 - Use `go mod tidy` to maintain the `go.mod` and `go.sum` files.
+
+## TUI Architecture & Component Design (Inspired by gh-dash)
+
+### Modular Component Structure
+- **Package per Component**: Each reusable TUI element should reside in its own package under `internal/tui/components/`.
+- **MVU (Model-View-Update)**: Every component MUST implement its own `Model`, `Update(msg tea.Msg) (Model, tea.Cmd)`, and `View() string`.
+- **Centralized Context**: Use a `ProgramContext` struct (e.g., in `internal/tui/context`) to share global state like terminal dimensions, configuration, and shared styles.
+- **Context Synchronization**: Components should have an `UpdateProgramContext(*context.ProgramContext)` method to react to global state changes (e.g., window resizing).
+- **Delegation**: The main application model should delegate `Update` and `View` calls to its child components.
+
+### Bubble Tea Idiomatic Usage
+- **Command Dispatching**: Use `tea.Cmd` for all side effects (API calls, file I/O). Wrap them in custom message types.
+- **Message Passing**: Prefer specific message types for internal communication between components.
+- **Key Bindings**: Use `github.com/charmbracelet/bubbles/key` to define and manage keyboard shortcuts consistently.
+- **Non-Blocking Operations**: Ensure long-running tasks are started as `tea.Cmd` to keep the UI responsive.
+- **Functional Options**: Use the "Functional Options" pattern for component constructors to provide clean and extensible APIs.
+
+### Lipgloss & Styling Best Practices
+- **Adaptive Colors**: Always use `lipgloss.AdaptiveColor` to support both light and dark terminal themes.
+- **Centralized Styles**: Define base styles and theme colors in a central location (e.g., `internal/tui/theme`) and distribute them via the `ProgramContext`.
+- **Dynamic Layouts**: Calculate component widths and heights dynamically based on the current terminal size. Avoid hardcoded dimensions.
+- **Composition**: Use `lipgloss.JoinVertical` and `lipgloss.JoinHorizontal` for complex layouts instead of manual string concatenation.
+- **Style Inheritance**: Build complex styles by extending base styles using `.Inherit()` or by layering properties.
+- **Performance**: Pre-define styles as variables where possible to avoid re-allocating them in the `View()` loop.
