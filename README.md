@@ -51,6 +51,25 @@ Run the binary:
 go run ./cmd/ethereum-explorer
 ```
 
+## Running Tests
+
+To run the unit tests for the project:
+
+```bash
+go test ./... -v
+```
+
+Skip cache
+```bash
+go test -count=1 ./... -v
+```
+
+To run tests for a specific package (e.g., `etherscan`):
+
+```bash
+go test ./internal/etherscan/...
+```
+
 **./cmd/ethereum-explorer/main.go**
 ```go
 package main
