@@ -6,7 +6,7 @@ import (
 
 	"awesomeProject/internal/config"
 	"awesomeProject/internal/etherscan"
-	"awesomeProject/internal/ui"
+	"awesomeProject/internal/model"
 
 	tea "github.com/charmbracelet/bubbletea"
 )
@@ -22,7 +22,7 @@ func main() {
 	}
 
 	client := etherscan.NewClient(apiKey)
-	m := ui.New(client)
+	m := model.New(client)
 	p := tea.NewProgram(m, tea.WithAltScreen())
 
 	if _, err := p.Run(); err != nil {
