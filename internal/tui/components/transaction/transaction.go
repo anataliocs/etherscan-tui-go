@@ -38,7 +38,8 @@ func (m Model) View() string {
 	}
 
 	var b strings.Builder
-	b.WriteString(m.ctx.Theme.Title.Render("Transaction Details") + "\n\n")
+	b.WriteString(m.ctx.Theme.Title.Render("Transaction Details") + "\n")
+	b.WriteString(m.ctx.Theme.Purple.Render(strings.Repeat("─", 50)) + "\n\n")
 
 	items := []struct {
 		label string

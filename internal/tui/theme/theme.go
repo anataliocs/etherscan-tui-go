@@ -17,13 +17,15 @@ type Theme struct {
 	LightGray lipgloss.Style
 	DarkGray  lipgloss.Style
 	Savings   lipgloss.Style
+	Purple    lipgloss.Style
 }
 
 func DefaultTheme() *Theme {
+	purple := lipgloss.AdaptiveColor{Light: "#7D56F4", Dark: "#7D56F4"}
 	return &Theme{
 		Title: lipgloss.NewStyle().
 			Bold(true).
-			Foreground(lipgloss.AdaptiveColor{Light: "#7D56F4", Dark: "#7D56F4"}).
+			Foreground(purple).
 			MarginBottom(1),
 
 		Label: lipgloss.NewStyle().
@@ -40,7 +42,7 @@ func DefaultTheme() *Theme {
 
 		Active: lipgloss.NewStyle().
 			Bold(true).
-			Foreground(lipgloss.AdaptiveColor{Light: "#7D56F4", Dark: "#7D56F4"}),
+			Foreground(purple),
 
 		Inactive: lipgloss.NewStyle().
 			Foreground(lipgloss.AdaptiveColor{Light: "#626262", Dark: "#626262"}),
@@ -83,5 +85,8 @@ func DefaultTheme() *Theme {
 		Savings: lipgloss.NewStyle().
 			Foreground(lipgloss.AdaptiveColor{Light: "#008000", Dark: "#00FF00"}).
 			Italic(true),
+
+		Purple: lipgloss.NewStyle().
+			Foreground(purple),
 	}
 }
