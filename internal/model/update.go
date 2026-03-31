@@ -40,7 +40,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				}
 				m.client.SetChainID(chainID)
 				m.header.SetChainID(chainID)
-				m.header.SetLatestBlock("") // Reset while fetching
+				m.header.SetLatestBlock("", "") // Reset while fetching
 				return m, fetchLatestBlockCmd(context.Background(), m.client)
 			}
 		case tea.KeyEnter:
@@ -73,7 +73,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.footer.SetHelp("(r) refresh • (enter) search again • (esc) quit")
 		return m, m.loader.SetPercent(1.0)
 	case latestBlockMsg:
-		m.header.SetLatestBlock(msg.blockNumber)
+		m.header.SetLatestBlock(msg.blockNumber, msg.lastTxHash)
 		return m, nil
 	case errMsg:
 		m.err = msg

@@ -62,7 +62,7 @@ func TestFetchTransaction_MockAPI(t *testing.T) {
 				case "eth_getTransactionByHash":
 					w.Write([]byte(tt.responseBody))
 				case "eth_getBlockByNumber":
-					w.Write([]byte(`{"jsonrpc":"2.0","id":1,"result":{"timestamp":"0x65d507c0"}}`)) // 2024-02-20T20:12:48Z
+					w.Write([]byte(`{"jsonrpc":"2.0","id":1,"result":{"timestamp":"0x65d507c0", "transactions": ["0x123", "0x456"]}}`)) // 2024-02-20T20:12:48Z
 				case "eth_getTransactionReceipt":
 					w.Write([]byte(`{"jsonrpc":"2.0","id":1,"result":{"status":"0x1","gasUsed":"0x5208"}}`)) // 21000
 				case "eth_blockNumber":

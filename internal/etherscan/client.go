@@ -132,25 +132,26 @@ func (c *Client) FetchLatestBlockNumber(ctx context.Context) (string, error) {
 // Returns:
 //   - The formatted timestamp string.
 //   - The base fee per gas as a hex string.
+//   - The latest transaction hash in the block.
 //   - An error if the request fails.
-func (c *Client) FetchBlockDetails(ctx context.Context, blockNumber string) (string, string, error) {
+func (c *Client) FetchBlockDetails(ctx context.Context, blockNumber string) (string, string, string, error) {
 	if c.apiKey == "" {
-		return "", "", errors.New("ETHERSCAN_API_KEY environment variable is not set")
+		return "", "", "", errors.New("ETHERSCAN_API_KEY environment variable is not set")
 	}
 
 	url := fmt.Sprintf("%s?chainid=%d&module=proxy&action=eth_getBlockByNumber&tag=%s&boolean=false&apikey=%s", c.baseURL, c.chainId, blockNumber, c.apiKey)
 
 	proxyResp, err := doRequest[json.RawMessage](c, ctx, url)
 	if err != nil {
-		return "", "", err
+		return "", "", "", err
 	}
 
-	block, unixTime, s, s2, err2 := extractBlockDetails(proxyResp, err)
+	block, unixTime, _, txHash, err2 := extractBlockDetails(proxyResp, err)
 	if err2 != nil {
-		return s, s2, err2
+		return "", "", "", err2
 	}
 
-	return time.Unix(unixTime, 0).UTC().Format(time.RFC3339), block.BaseFeePerGas, nil
+	return time.Unix(unixTime, 0).UTC().Format(time.RFC3339), block.BaseFeePerGas, txHash, nil
 }
 
 // IsContract checks if the given address is a smart contract.

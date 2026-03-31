@@ -39,7 +39,10 @@ type Model struct {
 }
 
 type txMsg struct{ tx *etherscan.Transaction }
-type latestBlockMsg struct{ blockNumber string }
+type latestBlockMsg struct {
+	blockNumber string
+	lastTxHash  string
+}
 type errMsg error
 
 // New creates a new Model with the given Etherscan client.
@@ -82,6 +85,10 @@ func fetchLatestBlockCmd(ctx goctx.Context, client *etherscan.Client) tea.Cmd {
 		if err != nil {
 			return errMsg(err)
 		}
-		return latestBlockMsg{blockNumber: blockNum}
+		_, _, txHash, err := client.FetchBlockDetails(ctx, blockNum)
+		if err != nil {
+			return latestBlockMsg{blockNumber: blockNum}
+		}
+		return latestBlockMsg{blockNumber: blockNum, lastTxHash: txHash}
 	}
 }

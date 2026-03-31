@@ -74,7 +74,7 @@ func buildTransaction(ctx context.Context, hash string, proxyResp *ProxyResponse
 	}
 
 	if hexBlockNumber != "" && hexBlockNumber != "0x0" {
-		timestamp, baseFee, err := c.FetchBlockDetails(ctx, hexBlockNumber)
+		timestamp, baseFee, _, err := c.FetchBlockDetails(ctx, hexBlockNumber)
 		if err == nil {
 			tx.Timestamp = timestamp
 			tx.BaseFeePerGas = formatGwei(baseFee)
@@ -145,40 +145,51 @@ func extractTransactionReceipt(proxyResp *ProxyResponse[receiptResult]) (string,
 //   - An empty string (kept for signature compatibility).
 //   - An error if parsing fails.
 func extractBlockDetails(proxyResp *ProxyResponse[json.RawMessage], err error) (struct {
-	Timestamp     string `json:"timestamp"`
-	BaseFeePerGas string `json:"baseFeePerGas"`
+	Timestamp     string   `json:"timestamp"`
+	BaseFeePerGas string   `json:"baseFeePerGas"`
+	Transactions  []string `json:"transactions"`
 }, int64, string, string, error) {
 	if len(proxyResp.Result) == 0 || string(proxyResp.Result) == "null" {
 		return struct {
-			Timestamp     string `json:"timestamp"`
-			BaseFeePerGas string `json:"baseFeePerGas"`
+			Timestamp     string   `json:"timestamp"`
+			BaseFeePerGas string   `json:"baseFeePerGas"`
+			Transactions  []string `json:"transactions"`
 		}{}, 0, "", "", errors.New("block not found")
 	}
 
 	var block struct {
-		Timestamp     string `json:"timestamp"`
-		BaseFeePerGas string `json:"baseFeePerGas"`
+		Timestamp     string   `json:"timestamp"`
+		BaseFeePerGas string   `json:"baseFeePerGas"`
+		Transactions  []string `json:"transactions"`
 	}
 
 	if err := json.Unmarshal(proxyResp.Result, &block); err != nil {
 		var msg string
 		if json.Unmarshal(proxyResp.Result, &msg) == nil {
 			return struct {
-				Timestamp     string `json:"timestamp"`
-				BaseFeePerGas string `json:"baseFeePerGas"`
+				Timestamp     string   `json:"timestamp"`
+				BaseFeePerGas string   `json:"baseFeePerGas"`
+				Transactions  []string `json:"transactions"`
 			}{}, 0, "", "", fmt.Errorf("Etherscan API error: %s", msg)
 		}
 		return struct {
-			Timestamp     string `json:"timestamp"`
-			BaseFeePerGas string `json:"baseFeePerGas"`
+			Timestamp     string   `json:"timestamp"`
+			BaseFeePerGas string   `json:"baseFeePerGas"`
+			Transactions  []string `json:"transactions"`
 		}{}, 0, "", "", fmt.Errorf("unexpected response format for block: %w", err)
 	}
 
 	if block.Timestamp == "" {
 		return struct {
-			Timestamp     string `json:"timestamp"`
-			BaseFeePerGas string `json:"baseFeePerGas"`
+			Timestamp     string   `json:"timestamp"`
+			BaseFeePerGas string   `json:"baseFeePerGas"`
+			Transactions  []string `json:"transactions"`
 		}{}, 0, "", "", errors.New("timestamp not found in block")
+	}
+
+	lastTxHash := ""
+	if len(block.Transactions) > 0 {
+		lastTxHash = block.Transactions[len(block.Transactions)-1]
 	}
 
 	// Parse hex timestamp
@@ -186,9 +197,10 @@ func extractBlockDetails(proxyResp *ProxyResponse[json.RawMessage], err error) (
 	_, err = fmt.Sscanf(block.Timestamp, "0x%x", &unixTime)
 	if err != nil {
 		return struct {
-			Timestamp     string `json:"timestamp"`
-			BaseFeePerGas string `json:"baseFeePerGas"`
+			Timestamp     string   `json:"timestamp"`
+			BaseFeePerGas string   `json:"baseFeePerGas"`
+			Transactions  []string `json:"transactions"`
 		}{}, 0, "", "", fmt.Errorf("failed to parse timestamp: %w", err)
 	}
-	return block, unixTime, "", "", nil
+	return block, unixTime, "", lastTxHash, nil
 }

@@ -12,6 +12,7 @@ type Model struct {
 	ctx             *context.ProgramContext
 	chainID         int
 	latestBlock     string
+	latestTxHash    string
 	isFetchingBlock bool
 }
 
@@ -31,8 +32,9 @@ func (m *Model) UpdateProgramContext(ctx *context.ProgramContext) {
 	m.ctx = ctx
 }
 
-func (m *Model) SetLatestBlock(block string) {
+func (m *Model) SetLatestBlock(block string, txHash string) {
 	m.latestBlock = block
+	m.latestTxHash = txHash
 	m.isFetchingBlock = false
 }
 
@@ -53,6 +55,9 @@ func (m Model) View() string {
 		latestBlockDisplay += "Loading..."
 	} else if m.latestBlock != "" {
 		latestBlockDisplay += etherscan.FormatLatestBlock(m.latestBlock)
+		if m.latestTxHash != "" {
+			latestBlockDisplay += "\nLatest Transaction Hash: " + m.ctx.Theme.Inactive.Render(m.latestTxHash)
+		}
 	} else {
 		latestBlockDisplay += "n/a"
 	}

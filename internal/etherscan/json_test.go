@@ -68,7 +68,7 @@ func TestExtractBlockDetails(t *testing.T) {
 	}{
 		{
 			name:          "Success",
-			json:          `{"timestamp":"0x65d507c0", "baseFeePerGas":"0x7"}`,
+			json:          `{"timestamp":"0x65d507c0", "baseFeePerGas":"0x7", "transactions":["0x123", "0x456"]}`,
 			expectedTime:  1708459968,
 			expectedBaseF: "0x7",
 		},
@@ -94,7 +94,7 @@ func TestExtractBlockDetails(t *testing.T) {
 			proxyResp := &ProxyResponse[json.RawMessage]{
 				Result: json.RawMessage(tt.json),
 			}
-			block, unixTime, _, _, err := extractBlockDetails(proxyResp, nil)
+			block, unixTime, _, txHash, err := extractBlockDetails(proxyResp, nil)
 
 			if tt.expectedErr != "" {
 				if err == nil {
@@ -114,6 +114,9 @@ func TestExtractBlockDetails(t *testing.T) {
 			}
 			if block.BaseFeePerGas != tt.expectedBaseF {
 				t.Errorf("BaseFeePerGas = %s; want %s", block.BaseFeePerGas, tt.expectedBaseF)
+			}
+			if tt.name == "Success" && txHash != "0x456" {
+				t.Errorf("txHash = %s; want 0x456", txHash)
 			}
 		})
 	}
