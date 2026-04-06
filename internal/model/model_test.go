@@ -85,6 +85,8 @@ func TestUpdate_EnterKey(t *testing.T) {
 	m.input.SetValue("0x123")
 
 	// Test Enter starts loading
+	m.state = inputState
+	m.input.SetValue("0x123")
 	m2, cmd := m.Update(tea.KeyMsg{Type: tea.KeyEnter})
 	updatedModel := m2.(Model)
 	if updatedModel.state != loadingState {
@@ -94,14 +96,30 @@ func TestUpdate_EnterKey(t *testing.T) {
 		t.Errorf("expected non-nil cmd after Enter")
 	}
 
-	// Test Enter from result state returns to input state
+	// Test Backspace from result state returns to input state
 	updatedModel.state = resultState
-	m3, _ := updatedModel.Update(tea.KeyMsg{Type: tea.KeyEnter})
+	m3, _ := updatedModel.Update(tea.KeyMsg{Type: tea.KeyBackspace})
 	updatedModel2 := m3.(Model)
 	if updatedModel2.state != inputState {
-		t.Errorf("expected state inputState after Enter from resultState, got %v", updatedModel2.state)
+		t.Errorf("expected state inputState after Backspace from resultState, got %v", updatedModel2.state)
 	}
 	if updatedModel2.input.Value() != "" {
 		t.Errorf("expected textInput to be reset")
+	}
+
+	// Test Esc from result state returns to input state
+	updatedModel.state = resultState
+	m4, _ := updatedModel.Update(tea.KeyMsg{Type: tea.KeyEsc})
+	updatedModel3 := m4.(Model)
+	if updatedModel3.state != inputState {
+		t.Errorf("expected state inputState after Esc from resultState, got %v", updatedModel3.state)
+	}
+
+	// Test Enter from result state returns to input state
+	updatedModel.state = resultState
+	m5, _ := updatedModel.Update(tea.KeyMsg{Type: tea.KeyEnter})
+	updatedModel4 := m5.(Model)
+	if updatedModel4.state != inputState {
+		t.Errorf("expected state inputState after Enter from resultState, got %v", updatedModel4.state)
 	}
 }

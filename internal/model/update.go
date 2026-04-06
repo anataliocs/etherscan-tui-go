@@ -28,8 +28,15 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	case tea.KeyMsg:
 		switch msg.Type {
-		case tea.KeyCtrlC, tea.KeyEsc:
+		case tea.KeyCtrlC:
 			return m, tea.Quit
+		case tea.KeyEsc:
+			if m.state == inputState {
+				return m, tea.Quit
+			}
+			m.state = inputState
+			m.input.SetValue("")
+			return m, m.input.Focus()
 		case tea.KeyTab:
 			if m.state == inputState {
 				chainID := m.client.ChainID()
@@ -43,8 +50,8 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				m.header.SetLatestBlock("", "") // Reset while fetching
 				return m, fetchLatestBlockCmd(context.Background(), m.client)
 			}
-		case tea.KeyEnter:
-			if m.state == inputState {
+		case tea.KeyEnter, tea.KeyBackspace:
+			if m.state == inputState && msg.Type == tea.KeyEnter {
 				hash := strings.TrimSpace(m.input.Value())
 				if hash == "" {
 					return m, nil
@@ -70,7 +77,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.tx = msg.tx
 		m.state = resultState
 		m.transaction = transaction.New(m.ctx, m.tx)
-		m.footer.SetHelp("(r) refresh • (enter) search again • (esc) quit")
+		m.footer.SetHelp("(r) refresh • (backspace/enter/esc) search again • (ctrl+c) quit")
 		return m, m.loader.SetPercent(1.0)
 	case latestBlockMsg:
 		m.header.SetLatestBlock(msg.blockNumber, msg.lastTxHash)
@@ -79,7 +86,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.err = msg
 		m.errorView.SetError(msg)
 		m.state = errorState
-		m.footer.SetHelp("press enter to try again • esc to quit")
+		m.footer.SetHelp("press backspace/enter/esc to try again • ctrl+c to quit")
 		return m, nil
 	case tickMsg:
 		if m.state != loadingState {
