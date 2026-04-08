@@ -66,7 +66,11 @@ func New(client *etherscan.Client) Model {
 
 // Init initializes the Model.
 func (m Model) Init() tea.Cmd {
-	return tea.Batch(m.input.Focus(), fetchLatestBlockCmd(goctx.Background(), m.client))
+	return tea.Batch(
+		m.input.Focus(),
+		fetchLatestBlockCmd(goctx.Background(), m.client),
+		m.header.Tick(),
+	)
 }
 
 func fetchTransactionCmd(ctx goctx.Context, hash string, client *etherscan.Client) tea.Cmd {

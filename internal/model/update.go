@@ -49,7 +49,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				m.client.SetChainID(chainID)
 				m.header.SetChainID(chainID)
 				m.header.SetLatestBlock("", "") // Reset while fetching
-				return m, fetchLatestBlockCmd(context.Background(), m.client)
+				return m, tea.Batch(fetchLatestBlockCmd(context.Background(), m.client), m.header.Tick())
 			}
 		case tea.KeyEnter, tea.KeyBackspace:
 			if m.state == inputState && msg.Type == tea.KeyEnter {

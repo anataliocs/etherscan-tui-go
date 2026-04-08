@@ -5,7 +5,9 @@ import (
 	"awesomeProject/internal/tui/context"
 	"fmt"
 
+	"github.com/charmbracelet/bubbles/spinner"
 	tea "github.com/charmbracelet/bubbletea"
+	"github.com/charmbracelet/lipgloss"
 )
 
 type Model struct {
@@ -14,18 +16,31 @@ type Model struct {
 	latestBlock     string
 	latestTxHash    string
 	isFetchingBlock bool
+	spinner         spinner.Model
 }
 
 func New(ctx *context.ProgramContext, chainID int) Model {
+	s := spinner.New()
+	s.Spinner = spinner.Dot
+	s.Style = lipgloss.NewStyle().Foreground(lipgloss.Color("205"))
 	return Model{
 		ctx:             ctx,
 		chainID:         chainID,
 		isFetchingBlock: true,
+		spinner:         s,
 	}
 }
 
 func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
-	return m, nil
+	var cmd tea.Cmd
+	if m.isFetchingBlock {
+		m.spinner, cmd = m.spinner.Update(msg)
+	}
+	return m, cmd
+}
+
+func (m Model) Tick() tea.Cmd {
+	return m.spinner.Tick
 }
 
 func (m *Model) UpdateProgramContext(ctx *context.ProgramContext) {
@@ -40,6 +55,7 @@ func (m *Model) SetLatestBlock(block string, txHash string) {
 
 func (m *Model) SetChainID(id int) {
 	m.chainID = id
+	m.isFetchingBlock = true
 }
 
 func (m Model) View() string {
@@ -52,7 +68,7 @@ func (m Model) View() string {
 
 	latestBlockDisplay := "Total Transactions: "
 	if m.isFetchingBlock {
-		latestBlockDisplay += "Loading..."
+		latestBlockDisplay += m.spinner.View()
 	} else if m.latestBlock != "" {
 		latestBlockDisplay += etherscan.FormatLatestBlock(m.latestBlock)
 		if m.latestTxHash != "" {
