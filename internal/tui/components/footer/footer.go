@@ -30,6 +30,10 @@ func (m *Model) SetHelp(help string) {
 	m.help = help
 }
 
+func (m Model) Help() string {
+	return m.help
+}
+
 func (m Model) View() string {
 	return m.ctx.Theme.Help.Render("\n\n" + m.help)
 }

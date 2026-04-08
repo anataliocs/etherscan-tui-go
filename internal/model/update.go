@@ -36,6 +36,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			}
 			m.state = inputState
 			m.input.SetValue("")
+			m.footer.SetHelp("(tab) switch network • (enter) search • (ctrl+c) quit")
 			return m, m.input.Focus()
 		case tea.KeyTab:
 			if m.state == inputState {
@@ -63,6 +64,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			if m.state == resultState || m.state == errorState {
 				m.state = inputState
 				m.input.SetValue("")
+				m.footer.SetHelp("(tab) switch network • (enter) search • (ctrl+c) quit")
 				return m, m.input.Focus()
 			}
 		case tea.KeyRunes:

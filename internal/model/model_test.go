@@ -123,3 +123,50 @@ func TestUpdate_EnterKey(t *testing.T) {
 		t.Errorf("expected state inputState after Enter from resultState, got %v", updatedModel4.state)
 	}
 }
+
+func TestFooterHelpReset(t *testing.T) {
+	client := etherscan.NewClient("test-key")
+	m := New(client)
+
+	initialHelp := "(tab) switch network • (enter) search • (ctrl+c) quit"
+	if m.footer.Help() != initialHelp {
+		t.Errorf("expected initial help %q, got %q", initialHelp, m.footer.Help())
+	}
+
+	// Transition to resultState
+	tx := &etherscan.Transaction{Hash: "0xabc"}
+	m2, _ := m.Update(txMsg{tx: tx})
+	updatedModel := m2.(Model)
+	resultHelp := "(r) refresh • (backspace/enter/esc) search again • (ctrl+c) quit"
+	if updatedModel.footer.Help() != resultHelp {
+		t.Errorf("expected result help %q, got %q", resultHelp, updatedModel.footer.Help())
+	}
+
+	// Transition back to inputState via Esc
+	m3, _ := updatedModel.Update(tea.KeyMsg{Type: tea.KeyEsc})
+	updatedModel2 := m3.(Model)
+	if updatedModel2.state != inputState {
+		t.Errorf("expected state inputState, got %v", updatedModel2.state)
+	}
+	if updatedModel2.footer.Help() != initialHelp {
+		t.Errorf("expected help to be reset to %q, got %q", initialHelp, updatedModel2.footer.Help())
+	}
+
+	// Transition to errorState
+	m4, _ := m.Update(errMsg(fmt.Errorf("test error")))
+	updatedModel3 := m4.(Model)
+	errorHelp := "press backspace/enter/esc to try again • ctrl+c to quit"
+	if updatedModel3.footer.Help() != errorHelp {
+		t.Errorf("expected error help %q, got %q", errorHelp, updatedModel3.footer.Help())
+	}
+
+	// Transition back to inputState via Enter
+	m5, _ := updatedModel3.Update(tea.KeyMsg{Type: tea.KeyEnter})
+	updatedModel4 := m5.(Model)
+	if updatedModel4.state != inputState {
+		t.Errorf("expected state inputState, got %v", updatedModel4.state)
+	}
+	if updatedModel4.footer.Help() != initialHelp {
+		t.Errorf("expected help to be reset to %q, got %q", initialHelp, updatedModel4.footer.Help())
+	}
+}
