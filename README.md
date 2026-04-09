@@ -80,7 +80,7 @@ import (
 
 	"awesomeProject/internal/config"
 	"awesomeProject/internal/etherscan"
-	"awesomeProject/internal/ui"
+	"awesomeProject/internal/model"
 
 	tea "github.com/charmbracelet/bubbletea"
 )
@@ -96,7 +96,7 @@ func main() {
 	}
 
 	client := etherscan.NewClient(apiKey)
-	m := ui.New(client)
+	m := model.New(client)
 	p := tea.NewProgram(m, tea.WithAltScreen())
 
 	if _, err := p.Run(); err != nil {
@@ -104,7 +104,6 @@ func main() {
 		os.Exit(1)
 	}
 }
-
 ```
 
 ## Project Structure
@@ -117,16 +116,17 @@ func main() {
     - `retry.go`: HTTP request implementation with exponential backoff.
     - `format.go`: Formatting utilities for ETH values, gas prices, and transaction types.
     - `convert.go`: Conversion helpers (hex-to-decimal, confirmations calculation, etc.).
-- `internal/ui/`: Bubble Tea models, views, and Lipgloss styles.
-    - `model.go`: TUI state and initialization.
+- `internal/model/`: Main Bubble Tea application model and state management.
+    - `model.go`: TUI state, initialization, and sub-component orchestration.
     - `update.go`: Message handling and state transitions.
-    - `view.go`: UI rendering logic.
-    - `render.go`: Detailed transaction formatting and layout.
-    - `styles.go`: Lipgloss style definitions for the TUI.
-    - `format.go`: TUI-specific status and fee formatting.
+    - `view.go`: Main UI rendering logic delegating to components.
+- `internal/tui/`: TUI-specific components and styling following the MVU pattern.
+    - `components/`: Reusable UI elements (header, footer, input, loader, transaction, errorview).
+    - `context/`: Shared `ProgramContext` for global state like terminal dimensions and theme.
+    - `theme/`: Centralized styles and adaptive color definitions using Lipgloss.
 - `internal/config/`: Configuration and environment variable management.
 - `.env`: Local environment variables (ignored by git).
-- `main.go`: Legacy entry point (deprecated).
+- `main.go`: Deprecated entry point.
 
 ## Documentation
 
