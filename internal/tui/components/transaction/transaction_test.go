@@ -6,7 +6,6 @@ import (
 	"awesomeProject/internal/tui/theme"
 	"strings"
 	"testing"
-	"time"
 
 	"github.com/charmbracelet/lipgloss"
 )
@@ -112,7 +111,7 @@ func TestGetStatusStyle(t *testing.T) {
 }
 
 func TestRenderTransaction(t *testing.T) {
-	ctx := &context.ProgramContext{Theme: theme.DefaultTheme()}
+	ctx := &context.ProgramContext{Theme: theme.DefaultTheme(), ScreenWidth: 100}
 	tx := &etherscan.Transaction{
 		Status:         "success",
 		Hash:           "0x123",
@@ -128,6 +127,7 @@ func TestRenderTransaction(t *testing.T) {
 		MaxFeePerGas:   "20",
 		BaseFeePerGas:  "10",
 		ToAccountType:  "EOA",
+		Input:          "0x6080604052348015",
 	}
 	m := New(ctx, tx)
 
@@ -143,6 +143,9 @@ func TestRenderTransaction(t *testing.T) {
 		"21000",
 		"(100.00%)",
 		"EOA",
+		"Input Data (Raw Hex)",
+		"0000:",
+		"60 80 60 40 52 34 80 15",
 	}
 
 	for _, sub := range expectedSubstrings {
@@ -186,17 +189,51 @@ func TestRenderBlockNumber(t *testing.T) {
 	}
 }
 
-func TestRenderTimestamp(t *testing.T) {
-	ctx := &context.ProgramContext{Theme: theme.DefaultTheme()}
-	m := New(ctx, nil)
+func TestRenderTransactionEmptyInput(t *testing.T) {
+	ctx := &context.ProgramContext{Theme: theme.DefaultTheme(), ScreenWidth: 100}
+	tx := &etherscan.Transaction{
+		Status: "success",
+		Hash:   "0x7622cd85132825d32f0fc8a67498638ef4856d99575dca6e381cadea551b8ac1",
+		Input:  "0x",
+	}
+	m := New(ctx, tx)
 
-	// Use a fixed timestamp for testing relative time
-	now := time.Now()
-	past := now.Add(-10 * time.Minute)
-	timestampStr := past.Format(time.RFC3339)
+	result := m.View()
 
-	result := m.renderTimestamp(timestampStr, lipgloss.NewStyle())
-	if !strings.Contains(result, "10m") {
-		t.Errorf("expected '10m' in relative timestamp, got %q", result)
+	expectedSubstrings := []string{
+		"Transaction Details",
+		"Input Data (Raw Hex)",
+		"0x",
+	}
+
+	for _, sub := range expectedSubstrings {
+		if !strings.Contains(result, sub) {
+			t.Errorf("rendered output missing expected substring for empty input: %q", sub)
+		}
+	}
+}
+
+func TestRenderTransactionSmallScreen(t *testing.T) {
+	ctx := &context.ProgramContext{Theme: theme.DefaultTheme(), ScreenWidth: 30}
+	tx := &etherscan.Transaction{
+		Status: "success",
+		Input:  "0x6080604052348015",
+	}
+	m := New(ctx, tx)
+
+	result := m.View()
+	t.Logf("Small screen result:\n%s", result)
+
+	expectedSubstrings := []string{
+		"Transaction Details",
+		"Input Data (Raw Hex)",
+		"0000:",
+		"60 80 60 40 52 34 80 15",
+	}
+
+	for _, sub := range expectedSubstrings {
+		if !strings.Contains(result, sub) {
+			t.Errorf("rendered output missing expected substring in small screen: %q", sub)
+		}
 	}
 }

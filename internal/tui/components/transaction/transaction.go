@@ -37,9 +37,56 @@ func (m Model) View() string {
 		return ""
 	}
 
+	detailsWidth, inputWidth := m.calculateWidths()
+
+	if inputWidth == 0 {
+		// Vertical layout for small screens
+		details := m.renderDetails(detailsWidth)
+		input := m.renderInputData(detailsWidth)
+		if input == "" {
+			return details
+		}
+		return details + "\n\n" + input
+	}
+
+	details := m.renderDetails(detailsWidth)
+	input := m.renderInputData(inputWidth)
+
+	if input == "" {
+		return details
+	}
+
+	detailsStyle := lipgloss.NewStyle().Width(detailsWidth).PaddingRight(2)
+	inputStyle := lipgloss.NewStyle().Width(inputWidth)
+
+	return lipgloss.JoinHorizontal(lipgloss.Top,
+		detailsStyle.Render(details),
+		inputStyle.Render(input),
+	)
+}
+
+func (m Model) calculateWidths() (int, int) {
+	if m.ctx.ScreenWidth > 0 && m.ctx.ScreenWidth < 80 {
+		return m.ctx.ScreenWidth, 0 // Vertical layout signal: return full width and 0 for input
+	}
+
+	// Use exactly 50% of width for each view
+	halfWidth := m.ctx.ScreenWidth / 2
+	if halfWidth == 0 {
+		halfWidth = 50 // fallback
+	}
+
+	return halfWidth, halfWidth - 2
+}
+
+func (m Model) renderDetails(width int) string {
 	var b strings.Builder
 	b.WriteString(m.ctx.Theme.Title.Render("Transaction Details") + "\n")
-	b.WriteString(m.ctx.Theme.Purple.Render(strings.Repeat("─", 50)) + "\n\n")
+
+	sepWidth := max(20, width-2)
+	b.WriteString(m.ctx.Theme.Purple.Render(strings.Repeat("─", sepWidth)) + "\n\n")
+
+	labelStyle := m.ctx.Theme.Label.Copy().Width(min(18, width-10))
 
 	items := []struct {
 		label string
@@ -74,7 +121,7 @@ func (m Model) View() string {
 		switch {
 		case item.label == "Status":
 			statusBox := item.style.Render(item.value)
-			b.WriteString(lipgloss.JoinHorizontal(lipgloss.Top, m.ctx.Theme.Label.Render(item.label+":"), " ", statusBox) + "\n")
+			b.WriteString(lipgloss.JoinHorizontal(lipgloss.Top, labelStyle.Render(item.label+":"), " ", statusBox) + "\n")
 			continue
 		case item.label == "Gas Price" && strings.Contains(item.value, "("):
 			parts := strings.Split(item.value, " (")
@@ -93,7 +140,53 @@ func (m Model) View() string {
 			renderedValue = item.style.Render(item.value)
 		}
 
-		b.WriteString(m.ctx.Theme.Label.Render(item.label+":") + " " + renderedValue + "\n")
+		b.WriteString(labelStyle.Render(item.label+":") + " " + renderedValue + "\n")
+	}
+
+	return b.String()
+}
+
+func (m Model) renderInputData(width int) string {
+	if m.tx.Input == "" {
+		return ""
+	}
+
+	var b strings.Builder
+	b.WriteString(m.ctx.Theme.Title.Render("Input Data (Raw Hex)") + "\n")
+
+	sepWidth := max(20, width)
+	b.WriteString(m.ctx.Theme.Purple.Render(strings.Repeat("─", sepWidth)) + "\n\n")
+
+	if m.tx.Input == "0x" {
+		b.WriteString(m.ctx.Theme.Value.Render("0x") + "\n")
+		return b.String()
+	}
+
+	// Remove 0x prefix for formatting
+	input := strings.TrimPrefix(m.tx.Input, "0x")
+
+	// Format as a grid: 16 bytes (32 chars) per row
+	// Example: 0000: 60 80 60 40 52 34 80 15 61 00 10 57 60 00 80 fd
+	for i := 0; i < len(input); i += 32 {
+		end := min(i+32, len(input))
+		row := input[i:end]
+
+		// Offset
+		b.WriteString(m.ctx.Theme.DarkGray.Render(fmt.Sprintf("%04x: ", i/2)))
+
+		// Hex bytes
+		for j := 0; j < len(row); j += 2 {
+			byteEnd := min(j+2, len(row))
+			b.WriteString(m.ctx.Theme.Value.Render(row[j:byteEnd]) + " ")
+		}
+
+		// Pad short rows
+		if len(row) < 32 {
+			padding := (32 - len(row)) / 2
+			b.WriteString(strings.Repeat("   ", padding))
+		}
+
+		b.WriteString("\n")
 	}
 
 	return b.String()
