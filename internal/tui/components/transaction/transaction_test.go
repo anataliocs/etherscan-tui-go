@@ -127,7 +127,7 @@ func TestRenderTransaction(t *testing.T) {
 		MaxFeePerGas:   "20",
 		BaseFeePerGas:  "10",
 		ToAccountType:  "EOA",
-		Input:          "0x6080604052348015",
+		Input:          "0x" + strings.Repeat("6080604052348015", 40), // long input to trigger scrolling
 	}
 	m := New(ctx, tx)
 
@@ -144,6 +144,7 @@ func TestRenderTransaction(t *testing.T) {
 		"(100.00%)",
 		"EOA",
 		"Input Data (Raw Hex)",
+		"Scrollable:",
 		"0000:",
 		"60 80 60 40 52 34 80 15",
 	}
@@ -217,7 +218,7 @@ func TestRenderTransactionSmallScreen(t *testing.T) {
 	ctx := &context.ProgramContext{Theme: theme.DefaultTheme(), ScreenWidth: 30}
 	tx := &etherscan.Transaction{
 		Status: "success",
-		Input:  "0x6080604052348015",
+		Input:  "0x" + strings.Repeat("6080604052348015", 40), // long input to trigger scrolling
 	}
 	m := New(ctx, tx)
 
@@ -227,6 +228,7 @@ func TestRenderTransactionSmallScreen(t *testing.T) {
 	expectedSubstrings := []string{
 		"Transaction Details",
 		"Input Data (Raw Hex)",
+		"Scrollable:",
 		"0000:",
 		"60 80 60 40 52 34 80 15",
 	}

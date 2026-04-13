@@ -8,24 +8,35 @@ import (
 	"strings"
 	"time"
 
+	"github.com/charmbracelet/bubbles/viewport"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
 )
 
 type Model struct {
-	ctx *context.ProgramContext
-	tx  *etherscan.Transaction
+	ctx      *context.ProgramContext
+	tx       *etherscan.Transaction
+	viewport viewport.Model
 }
 
 func New(ctx *context.ProgramContext, tx *etherscan.Transaction) Model {
-	return Model{
+	m := Model{
 		ctx: ctx,
 		tx:  tx,
 	}
+
+	if tx != nil && tx.Input != "" && tx.Input != "0x" {
+		m.viewport = viewport.New(0, 0)
+		m.viewport.SetContent(m.renderInputHex(tx.Input))
+	}
+
+	return m
 }
 
 func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
-	return m, nil
+	var cmd tea.Cmd
+	m.viewport, cmd = m.viewport.Update(msg)
+	return m, cmd
 }
 
 func (m *Model) UpdateProgramContext(ctx *context.ProgramContext) {
@@ -162,8 +173,42 @@ func (m Model) renderInputData(width int) string {
 		return b.String()
 	}
 
+	// For non-empty input, use the viewport
+	// Calculate height based on screen height or some reasonable limit
+	height := 10 // default
+	if m.ctx.ScreenHeight > 20 {
+		height = m.ctx.ScreenHeight - 15 // Leave space for header/footer and details
+	}
+	if height < 5 {
+		height = 5
+	}
+
+	m.viewport.Width = width
+	m.viewport.Height = height
+
+	// Indicators for scrolling
+	var indicators string
+	if m.viewport.AtTop() && m.viewport.AtBottom() {
+		// All content fits, no indicators needed
+	} else {
+		if !m.viewport.AtTop() {
+			indicators += " ↑"
+		}
+		if !m.viewport.AtBottom() {
+			indicators += " ↓"
+		}
+		b.WriteString(m.ctx.Theme.DarkGray.Render("Scrollable:"+indicators) + "\n")
+	}
+
+	b.WriteString(m.viewport.View())
+
+	return b.String()
+}
+
+func (m Model) renderInputHex(hexInput string) string {
+	var b strings.Builder
 	// Remove 0x prefix for formatting
-	input := strings.TrimPrefix(m.tx.Input, "0x")
+	input := strings.TrimPrefix(hexInput, "0x")
 
 	// Format as a grid: 16 bytes (32 chars) per row
 	// Example: 0000: 60 80 60 40 52 34 80 15 61 00 10 57 60 00 80 fd
@@ -188,7 +233,6 @@ func (m Model) renderInputData(width int) string {
 
 		b.WriteString("\n")
 	}
-
 	return b.String()
 }
 
