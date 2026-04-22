@@ -81,13 +81,14 @@ func (m Model) calculateWidths() (int, int) {
 		return m.ctx.ScreenWidth, 0 // Vertical layout signal: return full width and 0 for input
 	}
 
-	// Use exactly 50% of width for each view
-	halfWidth := m.ctx.ScreenWidth / 2
-	if halfWidth == 0 {
-		halfWidth = 50 // fallback
+	// 60% Transaction Details, 40% Input Data
+	detailsWidth := int(float64(m.ctx.ScreenWidth) * 0.6)
+	if detailsWidth == 0 {
+		detailsWidth = 60 // fallback
 	}
+	inputWidth := m.ctx.ScreenWidth - detailsWidth
 
-	return halfWidth, halfWidth - 2
+	return detailsWidth, inputWidth - 2
 }
 
 func (m Model) renderDetails(width int) string {

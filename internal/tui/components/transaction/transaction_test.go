@@ -239,3 +239,32 @@ func TestRenderTransactionSmallScreen(t *testing.T) {
 		}
 	}
 }
+
+func TestCalculateWidths(t *testing.T) {
+	ctx := &context.ProgramContext{Theme: theme.DefaultTheme()}
+	m := Model{ctx: ctx}
+
+	tests := []struct {
+		name                 string
+		screenWidth          int
+		expectedDetailsWidth int
+		expectedInputWidth   int
+	}{
+		{"Small screen", 70, 70, 0},
+		{"Medium screen", 100, 60, 38}, // 100 * 0.6 = 60; 100 - 60 - 2 = 38
+		{"Large screen", 200, 120, 78}, // 200 * 0.6 = 120; 200 - 120 - 2 = 78
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			m.ctx.ScreenWidth = tt.screenWidth
+			detailsWidth, inputWidth := m.calculateWidths()
+			if detailsWidth != tt.expectedDetailsWidth {
+				t.Errorf("expected details width %d, got %d", tt.expectedDetailsWidth, detailsWidth)
+			}
+			if inputWidth != tt.expectedInputWidth {
+				t.Errorf("expected input width %d, got %d", tt.expectedInputWidth, inputWidth)
+			}
+		})
+	}
+}
