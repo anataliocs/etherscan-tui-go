@@ -58,6 +58,10 @@ func (m *Model) SetChainID(id int) {
 	m.isFetchingBlock = true
 }
 
+func (m Model) LatestTxHash() string {
+	return m.latestTxHash
+}
+
 func (m Model) View() string {
 	var networkToggle string
 	if m.chainID == 1 {

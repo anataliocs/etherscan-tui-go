@@ -36,7 +36,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			}
 			m.state = inputState
 			m.input.SetValue("")
-			m.footer.SetHelp("(tab) switch network • (enter) search • (ctrl+c) quit")
+			m.footer.SetHelp("(tab) switch network • (l) latest hash • (enter) search • (ctrl+c) quit")
 			return m, m.input.Focus()
 		case tea.KeyTab:
 			if m.state == inputState {
@@ -64,10 +64,19 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			if m.state == resultState || m.state == errorState {
 				m.state = inputState
 				m.input.SetValue("")
-				m.footer.SetHelp("(tab) switch network • (enter) search • (ctrl+c) quit")
+				m.footer.SetHelp("(tab) switch network • (l) latest hash • (enter) search • (ctrl+c) quit")
 				return m, m.input.Focus()
 			}
 		case tea.KeyRunes:
+			if (strings.Contains(string(msg.Runes), "L") || strings.Contains(string(msg.Runes), "l")) && m.state == inputState {
+				latestHash := m.header.LatestTxHash()
+				if latestHash != "" {
+					m.input.SetValue(latestHash)
+					m.state = loadingState
+					m.loader.SetText(latestHash)
+					return m, tea.Batch(fetchTransactionCmd(context.Background(), latestHash, m.client), m.loader.SetPercent(0), tickCmd())
+				}
+			}
 			if (strings.Contains(string(msg.Runes), "R") || strings.Contains(string(msg.Runes), "r")) && m.state == resultState {
 				hash := m.tx.Hash
 				m.state = loadingState

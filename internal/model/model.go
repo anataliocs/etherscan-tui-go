@@ -57,7 +57,7 @@ func New(client *etherscan.Client) Model {
 		header:      header.New(pCtx, client.ChainID()),
 		input:       input.New(pCtx),
 		transaction: transaction.New(pCtx, nil),
-		footer:      footer.New(pCtx, "(tab) switch network • (enter) search • (ctrl+c) quit"),
+		footer:      footer.New(pCtx, "(tab) switch network • (l) latest hash • (enter) search • (ctrl+c) quit"),
 		errorView:   errorview.New(pCtx, nil),
 		loader:      loader.New(pCtx),
 		client:      client,

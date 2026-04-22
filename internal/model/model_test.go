@@ -128,7 +128,7 @@ func TestFooterHelpReset(t *testing.T) {
 	client := etherscan.NewClient("test-key")
 	m := New(client)
 
-	initialHelp := "(tab) switch network • (enter) search • (ctrl+c) quit"
+	initialHelp := "(tab) switch network • (l) latest hash • (enter) search • (ctrl+c) quit"
 	if m.footer.Help() != initialHelp {
 		t.Errorf("expected initial help %q, got %q", initialHelp, m.footer.Help())
 	}
@@ -168,5 +168,45 @@ func TestFooterHelpReset(t *testing.T) {
 	}
 	if updatedModel4.footer.Help() != initialHelp {
 		t.Errorf("expected help to be reset to %q, got %q", initialHelp, updatedModel4.footer.Help())
+	}
+}
+
+func TestUpdate_LatestHash(t *testing.T) {
+	client := etherscan.NewClient("test-key")
+	m := New(client)
+
+	// Set latest hash in header
+	m.header.SetLatestBlock("123", "0xlatest")
+
+	// Test 'l' key
+	m2, cmd := m.Update(tea.KeyMsg{Runes: []rune("l"), Type: tea.KeyRunes})
+	updatedModel := m2.(Model)
+
+	if updatedModel.state != loadingState {
+		t.Errorf("expected state loadingState after 'l', got %v", updatedModel.state)
+	}
+	if updatedModel.input.Value() != "0xlatest" {
+		t.Errorf("expected input value '0xlatest', got %q", updatedModel.input.Value())
+	}
+	if cmd == nil {
+		t.Errorf("expected non-nil cmd after 'l'")
+	}
+
+	// Reset to input state
+	m.state = inputState
+	m.input.SetValue("")
+
+	// Test 'L' key
+	m3, cmd2 := m.Update(tea.KeyMsg{Runes: []rune("L"), Type: tea.KeyRunes})
+	updatedModel2 := m3.(Model)
+
+	if updatedModel2.state != loadingState {
+		t.Errorf("expected state loadingState after 'L', got %v", updatedModel2.state)
+	}
+	if updatedModel2.input.Value() != "0xlatest" {
+		t.Errorf("expected input value '0xlatest', got %q", updatedModel2.input.Value())
+	}
+	if cmd2 == nil {
+		t.Errorf("expected non-nil cmd after 'L'")
 	}
 }
