@@ -7,7 +7,7 @@ func (m Model) View() string {
 	case inputState:
 		s = m.header.View() + "\n\n" + m.input.View()
 	case loadingState:
-		s = m.loader.View()
+		return "\n" + m.loader.View() + "\n"
 	case resultState:
 		s = m.transaction.View()
 	case errorState:

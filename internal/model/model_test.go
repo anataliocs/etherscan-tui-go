@@ -3,6 +3,7 @@ package model
 import (
 	"awesomeProject/internal/etherscan"
 	"fmt"
+	"strings"
 	"testing"
 
 	tea "github.com/charmbracelet/bubbletea"
@@ -208,5 +209,22 @@ func TestUpdate_LatestHash(t *testing.T) {
 	}
 	if cmd2 == nil {
 		t.Errorf("expected non-nil cmd after 'L'")
+	}
+}
+
+func TestLoadingViewNoFooter(t *testing.T) {
+	client := etherscan.NewClient("test-key")
+	m := New(client)
+	m.state = loadingState
+	m.loader.SetText("0x123")
+
+	view := m.View()
+	if !strings.Contains(view, "Searching for 0x123...") {
+		t.Errorf("expected view to contain loader text, got %q", view)
+	}
+
+	initialHelp := "(tab) switch network • (l) latest hash • (enter) search • (ctrl+c) quit"
+	if strings.Contains(view, initialHelp) {
+		t.Errorf("expected loading view NOT to contain footer help text")
 	}
 }
