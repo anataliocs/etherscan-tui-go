@@ -83,12 +83,17 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				m.loader.SetText(hash)
 				return m, tea.Batch(fetchTransactionCmd(context.Background(), hash, m.client), m.loader.SetPercent(0), tickCmd())
 			}
+			if (strings.Contains(string(msg.Runes), "N") || strings.Contains(string(msg.Runes), "n")) && m.state == resultState {
+				m.state = loadingState
+				m.loader.SetText("next transaction")
+				return m, tea.Batch(fetchNextTransactionCmd(context.Background(), m.tx, m.client), m.loader.SetPercent(0), tickCmd())
+			}
 		}
 	case txMsg:
 		m.tx = msg.tx
 		m.state = resultState
 		m.transaction = transaction.New(m.ctx, m.tx)
-		m.footer.SetHelp("(r) refresh • (backspace/enter/esc) search again • (ctrl+c) quit")
+		m.footer.SetHelp("(r) refresh • (n) next tx • (backspace/enter/esc) search again • (ctrl+c) quit")
 		return m, m.loader.SetPercent(1.0)
 	case latestBlockMsg:
 		m.header.SetLatestBlock(msg.blockNumber, msg.lastTxHash)

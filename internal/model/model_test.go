@@ -138,7 +138,7 @@ func TestFooterHelpReset(t *testing.T) {
 	tx := &etherscan.Transaction{Hash: "0xabc"}
 	m2, _ := m.Update(txMsg{tx: tx})
 	updatedModel := m2.(Model)
-	resultHelp := "(r) refresh • (backspace/enter/esc) search again • (ctrl+c) quit"
+	resultHelp := "(r) refresh • (n) next tx • (backspace/enter/esc) search again • (ctrl+c) quit"
 	if updatedModel.footer.Help() != resultHelp {
 		t.Errorf("expected result help %q, got %q", resultHelp, updatedModel.footer.Help())
 	}
@@ -209,6 +209,42 @@ func TestUpdate_LatestHash(t *testing.T) {
 	}
 	if cmd2 == nil {
 		t.Errorf("expected non-nil cmd after 'L'")
+	}
+}
+
+func TestUpdate_NextTransaction(t *testing.T) {
+	client := etherscan.NewClient("test-key")
+	m := New(client)
+
+	// Set initial transaction
+	tx := &etherscan.Transaction{Hash: "0x123", BlockNumber: "10"}
+	m.tx = tx
+	m.state = resultState
+
+	// Test 'n' key
+	m2, cmd := m.Update(tea.KeyMsg{Runes: []rune("n"), Type: tea.KeyRunes})
+	updatedModel := m2.(Model)
+
+	if updatedModel.state != loadingState {
+		t.Errorf("expected state loadingState after 'n', got %v", updatedModel.state)
+	}
+	if updatedModel.loader.View() == "" || !strings.Contains(updatedModel.loader.View(), "next transaction") {
+		t.Errorf("expected loader to mention next transaction")
+	}
+	if cmd == nil {
+		t.Errorf("expected non-nil cmd after 'n'")
+	}
+
+	// Test 'N' key
+	m.state = resultState
+	m3, cmd2 := m.Update(tea.KeyMsg{Runes: []rune("N"), Type: tea.KeyRunes})
+	updatedModel2 := m3.(Model)
+
+	if updatedModel2.state != loadingState {
+		t.Errorf("expected state loadingState after 'N', got %v", updatedModel2.state)
+	}
+	if cmd2 == nil {
+		t.Errorf("expected non-nil cmd after 'N'")
 	}
 }
 

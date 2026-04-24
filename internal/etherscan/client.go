@@ -6,7 +6,9 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"math/big"
 	"net/http"
+	"strings"
 	"time"
 )
 
@@ -124,7 +126,7 @@ func (c *Client) FetchLatestBlockNumber(ctx context.Context) (string, error) {
 	return proxyResp.Result, nil
 }
 
-// FetchBlockDetails retrieves block timestamp and base fee for a given block number.
+// FetchBlockDetails retrieves block timestamp, base fee and the list of transaction hashes for a given block number.
 // Parameters:
 //   - ctx: The context for the request.
 //   - blockNumber: The block number (hex or tag) to fetch details for.
@@ -132,26 +134,67 @@ func (c *Client) FetchLatestBlockNumber(ctx context.Context) (string, error) {
 // Returns:
 //   - The formatted timestamp string.
 //   - The base fee per gas as a hex string.
-//   - The latest transaction hash in the block.
+//   - The list of transaction hashes in the block.
 //   - An error if the request fails.
-func (c *Client) FetchBlockDetails(ctx context.Context, blockNumber string) (string, string, string, error) {
+func (c *Client) FetchBlockDetails(ctx context.Context, blockNumber string) (string, string, []string, error) {
 	if c.apiKey == "" {
-		return "", "", "", errors.New("ETHERSCAN_API_KEY environment variable is not set")
+		return "", "", nil, errors.New("ETHERSCAN_API_KEY environment variable is not set")
 	}
 
 	url := fmt.Sprintf("%s?chainid=%d&module=proxy&action=eth_getBlockByNumber&tag=%s&boolean=false&apikey=%s", c.baseURL, c.chainId, blockNumber, c.apiKey)
 
 	proxyResp, err := doRequest[json.RawMessage](c, ctx, url)
 	if err != nil {
-		return "", "", "", err
+		return "", "", nil, err
 	}
 
-	block, unixTime, _, txHash, err2 := extractBlockDetails(proxyResp, err)
+	block, unixTime, _, _, err2 := extractBlockDetails(proxyResp, err)
 	if err2 != nil {
-		return "", "", "", err2
+		return "", "", nil, err2
 	}
 
-	return time.Unix(unixTime, 0).UTC().Format(time.RFC3339), block.BaseFeePerGas, txHash, nil
+	return time.Unix(unixTime, 0).UTC().Format(time.RFC3339), block.BaseFeePerGas, block.Transactions, nil
+}
+
+// FetchNextTransactionHash attempts to find the next transaction hash after the given one in the same block.
+// If it's the last transaction in the block, it tries the first transaction of the next block.
+// Parameters:
+//   - ctx: The context for the request.
+//   - currentTx: The current transaction object.
+//
+// Returns:
+//   - The next transaction hash.
+//   - An error if the next transaction cannot be found.
+func (c *Client) FetchNextTransactionHash(ctx context.Context, currentTx *Transaction) (string, error) {
+	if currentTx == nil || currentTx.BlockNumber == "" {
+		return "", errors.New("invalid current transaction")
+	}
+
+	// 1. Try to find the next transaction in the current block
+	_, _, txHashes, err := c.FetchBlockDetails(ctx, fmt.Sprintf("0x%x", stringToBigInt(currentTx.BlockNumber)))
+	if err == nil {
+		for i, hash := range txHashes {
+			if strings.EqualFold(hash, currentTx.Hash) {
+				if i+1 < len(txHashes) {
+					return txHashes[i+1], nil
+				}
+				break
+			}
+		}
+	}
+
+	// 2. If it's the last one or error fetching current block, try the next block
+	nextBlockNum := new(big.Int).Add(stringToBigInt(currentTx.BlockNumber), big.NewInt(1))
+	_, _, nextTxHashes, err := c.FetchBlockDetails(ctx, fmt.Sprintf("0x%x", nextBlockNum))
+	if err != nil {
+		return "", fmt.Errorf("could not fetch next block: %w", err)
+	}
+
+	if len(nextTxHashes) == 0 {
+		return "", errors.New("no transactions found in the next block")
+	}
+
+	return nextTxHashes[0], nil
 }
 
 // IsContract checks if the given address is a smart contract.

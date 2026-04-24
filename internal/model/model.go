@@ -83,15 +83,33 @@ func fetchTransactionCmd(ctx goctx.Context, hash string, client *etherscan.Clien
 	}
 }
 
+func fetchNextTransactionCmd(ctx goctx.Context, currentTx *etherscan.Transaction, client *etherscan.Client) tea.Cmd {
+	return func() tea.Msg {
+		hash, err := client.FetchNextTransactionHash(ctx, currentTx)
+		if err != nil {
+			return errMsg(err)
+		}
+		tx, err := client.FetchTransaction(ctx, hash)
+		if err != nil {
+			return errMsg(err)
+		}
+		return txMsg{tx: tx}
+	}
+}
+
 func fetchLatestBlockCmd(ctx goctx.Context, client *etherscan.Client) tea.Cmd {
 	return func() tea.Msg {
 		blockNum, err := client.FetchLatestBlockNumber(ctx)
 		if err != nil {
 			return errMsg(err)
 		}
-		_, _, txHash, err := client.FetchBlockDetails(ctx, blockNum)
+		_, _, txHashes, err := client.FetchBlockDetails(ctx, blockNum)
 		if err != nil {
 			return latestBlockMsg{blockNumber: blockNum}
+		}
+		var txHash string
+		if len(txHashes) > 0 {
+			txHash = txHashes[len(txHashes)-1]
 		}
 		return latestBlockMsg{blockNumber: blockNum, lastTxHash: txHash}
 	}
