@@ -74,11 +74,12 @@ func buildTransaction(ctx context.Context, hash string, proxyResp *ProxyResponse
 	}
 
 	if hexBlockNumber != "" && hexBlockNumber != "0x0" {
-		timestamp, baseFee, _, err := c.FetchBlockDetails(ctx, hexBlockNumber)
+		timestamp, baseFee, txHashes, err := c.FetchBlockDetails(ctx, hexBlockNumber)
 		if err == nil {
 			tx.Timestamp = timestamp
 			tx.BaseFeePerGas = formatGwei(baseFee)
 			tx.BurntFees = calculateBurntFees(gasUsed, baseFee)
+			tx.BlockTransactionCount = fmt.Sprintf("%d", len(txHashes))
 		} else {
 			tx.Timestamp = err.Error()
 		}

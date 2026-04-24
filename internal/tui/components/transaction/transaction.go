@@ -148,6 +148,12 @@ func (m Model) renderDetails(width int) string {
 			renderedValue = m.renderGasUsage(m.tx, item.value, item.style)
 		case item.label == "To" && m.tx.ToAccountType != "":
 			renderedValue = item.style.Render(item.value) + " " + m.ctx.Theme.DarkGray.Render(fmt.Sprintf("(%s)", m.tx.ToAccountType))
+		case item.label == "Tx Index":
+			val := item.value
+			if m.tx.BlockTransactionCount != "" {
+				val = fmt.Sprintf("%s/%s", item.value, m.tx.BlockTransactionCount)
+			}
+			renderedValue = item.style.Render(val) + " " + m.ctx.Theme.DarkGray.Render(fmt.Sprintf("(of block: %s)", m.tx.BlockNumber))
 		default:
 			renderedValue = item.style.Render(item.value)
 		}

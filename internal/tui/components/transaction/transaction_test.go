@@ -113,21 +113,23 @@ func TestGetStatusStyle(t *testing.T) {
 func TestRenderTransaction(t *testing.T) {
 	ctx := &context.ProgramContext{Theme: theme.DefaultTheme(), ScreenWidth: 100}
 	tx := &etherscan.Transaction{
-		Status:         "success",
-		Hash:           "0x123",
-		Type:           "2 (EIP-1559)",
-		Timestamp:      "2024-02-20T20:12:48Z",
-		BlockNumber:    "11",
-		Value:          "0 ETH",
-		Gas:            "21000",
-		GasUsed:        "21000",
-		GasPrice:       "10 Gwei (0.00000001 ETH)",
-		TransactionFee: "0.00021 ETH",
-		Confirmations:  "100",
-		MaxFeePerGas:   "20",
-		BaseFeePerGas:  "10",
-		ToAccountType:  "EOA",
-		Input:          "0x" + strings.Repeat("6080604052348015", 40), // long input to trigger scrolling
+		Status:                "success",
+		Hash:                  "0x123",
+		Type:                  "2 (EIP-1559)",
+		Timestamp:             "2024-02-20T20:12:48Z",
+		BlockNumber:           "11",
+		TransactionIndex:      "5",
+		BlockTransactionCount: "100",
+		Value:                 "0 ETH",
+		Gas:                   "21000",
+		GasUsed:               "21000",
+		GasPrice:              "10 Gwei (0.00000001 ETH)",
+		TransactionFee:        "0.00021 ETH",
+		Confirmations:         "100",
+		MaxFeePerGas:          "20",
+		BaseFeePerGas:         "10",
+		ToAccountType:         "EOA",
+		Input:                 "0x" + strings.Repeat("6080604052348015", 40), // long input to trigger scrolling
 	}
 	m := New(ctx, tx)
 
@@ -143,6 +145,8 @@ func TestRenderTransaction(t *testing.T) {
 		"21000",
 		"(100.00%)",
 		"EOA",
+		"5/100",
+		"11",
 		"Input Data (Raw Hex)",
 		"Scrollable:",
 		"0000:",
