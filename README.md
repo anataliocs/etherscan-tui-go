@@ -6,6 +6,10 @@ display details for any Ethereum transaction hash using the Etherscan API V2.
 
 Built with `bubbletea`, `bubbles`, and `lipgloss`.
 
+### Current Supported EVM Networks
+- [Ethereum](https://etherscan.io/)
+- [Sepolia](https://sepolia.etherscan.io/)
+
 ## Prerequisites
 
 - [Go](https://go.dev/doc/install) 1.26 or later.
