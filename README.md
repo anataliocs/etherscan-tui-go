@@ -1,8 +1,8 @@
 # Ethereum Transaction Explorer
 
-A modern, terminal-based Ethereum transaction explorer built with Go and
-the [Bubble Tea](https://github.com/charmbracelet/bubbletea) TUI framework. This tool allows you to quickly fetch and
-display details for any Ethereum transaction hash using the Etherscan API V2.
+A terminal(TUI) Ethereum transaction explorer built with Go and
+the [Bubble Tea](https://github.com/charmbracelet/bubbletea) TUI framework. Fetch, display and explore details for any Ethereum transaction hash 
+using the Etherscan API V2 all in your terminal.
 
 Built with `bubbletea`, `bubbles`, and `lipgloss`.
 
@@ -17,7 +17,7 @@ Built with `bubbletea`, `bubbles`, and `lipgloss`.
 
 ## Setup
 
-Create a `.env` file in the project root:
+Create `.env` file in project root:
 
 ```shell
 cp .env.example .env
@@ -31,13 +31,11 @@ ETHERSCAN_API_KEY=your_etherscan_api_key_here
 
 **Install dependencies**:
 
-   ```bash
-   go mod tidy
-   ```
+```bash
+go mod tidy
+```
 
-## Installation & Running
-
-### Build from source
+### Build
 
 ```bash
 go build -o ethereum-explorer ./cmd/ethereum-explorer
@@ -55,10 +53,9 @@ Run the binary:
 go run ./cmd/ethereum-explorer
 ```
 
-## Running Tests
+## Tests
 
-To run the unit tests for the project:
-
+Run Tests
 ```bash
 go test ./... -v
 ```
@@ -68,46 +65,10 @@ Skip cache
 go test -count=1 ./... -v
 ```
 
-To run tests for a specific package (e.g., `etherscan`):
+Run tests for a specific package (e.g., `etherscan`):
 
 ```bash
 go test ./internal/etherscan/...
-```
-
-**./cmd/ethereum-explorer/main.go**
-```go
-package main
-
-import (
-	"fmt"
-	"os"
-
-	"awesomeProject/internal/config"
-	"awesomeProject/internal/etherscan"
-	"awesomeProject/internal/model"
-
-	tea "github.com/charmbracelet/bubbletea"
-)
-
-func main() {
-	config.LoadEnv()
-
-	apiKey := config.APIKey()
-	if apiKey == "" {
-		fmt.Println("Error: ETHERSCAN_API_KEY environment variable is not set.")
-		fmt.Println("Please create a .env file with your Etherscan API key.")
-		os.Exit(1)
-	}
-
-	client := etherscan.NewClient(apiKey)
-	m := model.New(client)
-	p := tea.NewProgram(m, tea.WithAltScreen())
-
-	if _, err := p.Run(); err != nil {
-		fmt.Printf("Error: %v\n", err)
-		os.Exit(1)
-	}
-}
 ```
 
 ## Project Structure
@@ -132,9 +93,9 @@ func main() {
 - `.env`: Local environment variables (ignored by git).
 - `main.go`: Deprecated entry point.
 
-## Documentation
+## Maintained by:
 
-All packages and functions include comprehensive Go documentation comments, explaining parameters and return values.
+[Hella Web3 Labs](https://hella.website/)
 
 ## License
 
