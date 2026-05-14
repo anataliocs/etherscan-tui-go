@@ -197,6 +197,51 @@ func (c *Client) FetchNextTransactionHash(ctx context.Context, currentTx *Transa
 	return nextTxHashes[0], nil
 }
 
+// FetchPreviousTransactionHash attempts to find the previous transaction hash before the given one in the same block.
+// If it's the first transaction in the block, it tries the last transaction of the previous block.
+// Parameters:
+//   - ctx: The context for the request.
+//   - currentTx: The current transaction object.
+//
+// Returns:
+//   - The previous transaction hash.
+//   - An error if the previous transaction cannot be found.
+func (c *Client) FetchPreviousTransactionHash(ctx context.Context, currentTx *Transaction) (string, error) {
+	if currentTx == nil || currentTx.BlockNumber == "" {
+		return "", errors.New("invalid current transaction")
+	}
+
+	// 1. Try to find the previous transaction in the current block
+	_, _, txHashes, err := c.FetchBlockDetails(ctx, fmt.Sprintf("0x%x", stringToBigInt(currentTx.BlockNumber)))
+	if err == nil {
+		for i, hash := range txHashes {
+			if strings.EqualFold(hash, currentTx.Hash) {
+				if i > 0 {
+					return txHashes[i-1], nil
+				}
+				break
+			}
+		}
+	}
+
+	// 2. If it's the first one or error fetching current block, try the previous block
+	prevBlockNum := new(big.Int).Sub(stringToBigInt(currentTx.BlockNumber), big.NewInt(1))
+	if prevBlockNum.Sign() < 0 {
+		return "", errors.New("already at block 0")
+	}
+
+	_, _, prevTxHashes, err := c.FetchBlockDetails(ctx, fmt.Sprintf("0x%x", prevBlockNum))
+	if err != nil {
+		return "", fmt.Errorf("could not fetch previous block: %w", err)
+	}
+
+	if len(prevTxHashes) == 0 {
+		return "", errors.New("no transactions found in the previous block")
+	}
+
+	return prevTxHashes[len(prevTxHashes)-1], nil
+}
+
 // IsContract checks if the given address is a smart contract.
 // Parameters:
 //   - ctx: The context for the request.

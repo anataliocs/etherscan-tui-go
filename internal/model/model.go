@@ -97,6 +97,20 @@ func fetchNextTransactionCmd(ctx goctx.Context, currentTx *etherscan.Transaction
 	}
 }
 
+func fetchPreviousTransactionCmd(ctx goctx.Context, currentTx *etherscan.Transaction, client *etherscan.Client) tea.Cmd {
+	return func() tea.Msg {
+		hash, err := client.FetchPreviousTransactionHash(ctx, currentTx)
+		if err != nil {
+			return errMsg(err)
+		}
+		tx, err := client.FetchTransaction(ctx, hash)
+		if err != nil {
+			return errMsg(err)
+		}
+		return txMsg{tx: tx}
+	}
+}
+
 func fetchLatestBlockCmd(ctx goctx.Context, client *etherscan.Client) tea.Cmd {
 	return func() tea.Msg {
 		blockNum, err := client.FetchLatestBlockNumber(ctx)
