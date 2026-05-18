@@ -18,6 +18,7 @@ type Theme struct {
 	DarkGray  lipgloss.Style
 	Savings   lipgloss.Style
 	Purple    lipgloss.Style
+	Separator lipgloss.Style
 }
 
 func DefaultTheme() *Theme {
@@ -88,5 +89,7 @@ func DefaultTheme() *Theme {
 
 		Purple: lipgloss.NewStyle().
 			Foreground(purple),
+		Separator: lipgloss.NewStyle().
+			Foreground(lipgloss.AdaptiveColor{Light: "#D9D9D9", Dark: "#383838"}),
 	}
 }

@@ -13,5 +13,5 @@ func (m Model) View() string {
 	case errorState:
 		s = m.errorView.View()
 	}
-	return "\n" + s + m.footer.View() + "\n"
+	return "\n" + s + "\n" + m.footer.View() + "\n"
 }
