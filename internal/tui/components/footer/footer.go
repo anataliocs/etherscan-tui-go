@@ -39,6 +39,10 @@ func (m Model) View() string {
 	if m.ctx.ScreenWidth <= 0 {
 		return ""
 	}
-	separator := m.ctx.Theme.Separator.Render(strings.Repeat("─", m.ctx.ScreenWidth))
+	width := m.ctx.FooterWidth
+	if width <= 0 {
+		width = m.ctx.ScreenWidth
+	}
+	separator := m.ctx.Theme.Separator.Render(strings.Repeat("─", width))
 	return separator + "\n" + m.ctx.Theme.Help.Render(m.help)
 }

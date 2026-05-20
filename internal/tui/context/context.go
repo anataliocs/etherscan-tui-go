@@ -7,5 +7,6 @@ import (
 type ProgramContext struct {
 	ScreenWidth  int
 	ScreenHeight int
+	FooterWidth  int
 	Theme        *theme.Theme
 }
