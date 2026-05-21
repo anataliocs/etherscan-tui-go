@@ -8,6 +8,9 @@
 # Test binary, built with `go test -c`
 *.test
 
+# Static analysis artifacts
+lint_output.txt
+
 # Output of the go coverage tool, specifically when used with Litmus
 *.out
 
