@@ -1,3 +1,4 @@
+// Package model implements the main Bubble Tea application model and message handling.
 package model
 
 import (
@@ -24,6 +25,7 @@ const (
 	errorState
 )
 
+// Model is the main application model.
 type Model struct {
 	state       sessionState
 	ctx         *context.ProgramContext

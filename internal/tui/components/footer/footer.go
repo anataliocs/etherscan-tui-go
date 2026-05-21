@@ -23,7 +23,7 @@ func New(ctx *context.ProgramContext, help string) Model {
 }
 
 // Update updates the footer component state. Currently a no-op.
-func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
+func (m Model) Update(_ tea.Msg) (Model, tea.Cmd) {
 	return m, nil
 }
 

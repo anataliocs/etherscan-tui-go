@@ -55,9 +55,33 @@ go run ./cmd/ethereum-explorer
 
 ## Tests
 
-Run Tests
+### Linter
+
+Ensure the code passes linting:
+```bash
+make lint
+```
+Or directly:
+```bash
+golangci-lint run ./...
+```
+
+### Unit Tests
+
+Run all unit tests:
+```bash
+make test
+```
+Or directly:
 ```bash
 go test ./... -v
+```
+
+### E2E Tests
+
+Run end-to-end tests:
+```bash
+make test-e2e
 ```
 
 Skip cache

@@ -47,6 +47,17 @@ This project follows modern Go idioms and best practices as of Go 1.26. All cont
 - Use `t.Context()` when a test needs a context.
 - Use `b.Loop()` for the main loop in benchmark functions.
 
+## Development Workflow
+
+### Definition of Done
+Before marking a task as completed and submitting your changes, you MUST:
+1. **Run Linter**: Ensure the code passes linting by running `make lint` or `golangci-lint run ./...`.
+2. **Run Unit Tests**: All unit tests must pass. Run them with `make test` or `go test ./... -v`.
+3. **Run E2E Tests**: Ensure end-to-end functionality is preserved by running `make test-e2e`.
+4. **Go Mod Tidy**: Ensure `go.mod` and `go.sum` are up to date by running `go mod tidy && go mod verify`.
+
+Failure to pass any of these checks means the task is NOT done.
+
 ## Project-Specific Guidelines
 
 ### JSON Struct Tags
@@ -58,7 +69,7 @@ This project follows modern Go idioms and best practices as of Go 1.26. All cont
 
 ### Dependencies
 - Keep dependencies minimal.
-- Use `go mod tidy` to maintain the `go.mod` and `go.sum` files.
+- Use `go mod tidy && go mod verify` to maintain the `go.mod` and `go.sum` files.
 
 ## TUI Architecture & Component Design (Inspired by gh-dash)
 

@@ -31,7 +31,9 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 	case progress.FrameMsg:
 		var pm tea.Model
 		pm, cmd = m.progress.Update(msg)
-		m.progress = pm.(progress.Model)
+		if p, ok := pm.(progress.Model); ok {
+			m.progress = p
+		}
 	}
 	return m, cmd
 }

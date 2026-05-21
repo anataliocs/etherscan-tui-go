@@ -31,7 +31,7 @@ func NewClient(apiKey string) *Client {
 		apiKey:  apiKey,
 		http:    &http.Client{Timeout: 15 * time.Second},
 		baseURL: "https://api.etherscan.io/v2/api",
-		chainId: 1, // Default to Mainnet
+		chainID: 1, // Default to Mainnet
 	}
 }
 
@@ -39,14 +39,14 @@ func NewClient(apiKey string) *Client {
 // Parameters:
 //   - id: The Ethereum chain ID (e.g., 1 for Mainnet, 11155111 for Sepolia).
 func (c *Client) SetChainID(id int) {
-	c.chainId = id
+	c.chainID = id
 }
 
 // ChainID returns the current Ethereum chain ID.
 // Returns:
 //   - The current Ethereum chain ID.
 func (c *Client) ChainID() int {
-	return c.chainId
+	return c.chainID
 }
 
 // FetchTransaction fetches transaction details by its hash.
@@ -62,20 +62,20 @@ func (c *Client) FetchTransaction(ctx context.Context, hash string) (*Transactio
 		return nil, errors.New("ETHERSCAN_API_KEY environment variable is not set")
 	}
 
-	url := fmt.Sprintf("%s?chainid=%d&module=proxy&action=eth_getTransactionByHash&txhash=%s&apikey=%s", c.baseURL, c.chainId, hash, c.apiKey)
+	url := fmt.Sprintf("%s?chainid=%d&module=proxy&action=eth_getTransactionByHash&txhash=%s&apikey=%s", c.baseURL, c.chainID, hash, c.apiKey)
 
 	// small delay so the loading state is visible in the UI and to be polite with API
-	transaction, err2, done := throttle(ctx)
+	transaction, done, err2 := throttle(ctx)
 	if done {
 		return transaction, err2
 	}
 
-	proxyResp, err := doRequest[json.RawMessage](c, ctx, url)
+	proxyResp, err := doRequest[json.RawMessage](ctx, c, url)
 	if err != nil {
 		return nil, err
 	}
 
-	tx, t, err3 := buildTransaction(ctx, hash, proxyResp, err, c)
+	tx, t, err3 := buildTransaction(ctx, hash, proxyResp, c)
 	if err3 != nil {
 		return t, err3
 	}
@@ -91,13 +91,13 @@ func (c *Client) FetchTransaction(ctx context.Context, hash string) (*Transactio
 //   - A pointer to Transaction (always nil in this implementation).
 //   - An error if the context is cancelled.
 //   - A boolean indicating if the request should be considered done (e.g., on context cancellation).
-func throttle(ctx context.Context) (*Transaction, error, bool) {
+func throttle(ctx context.Context) (*Transaction, bool, error) {
 	select {
 	case <-time.After(500 * time.Millisecond):
 	case <-ctx.Done():
-		return nil, ctx.Err(), true
+		return nil, true, ctx.Err()
 	}
-	return nil, nil, false
+	return nil, false, nil
 }
 
 // FetchLatestBlockNumber retrieves the latest block number from Etherscan.
@@ -112,9 +112,9 @@ func (c *Client) FetchLatestBlockNumber(ctx context.Context) (string, error) {
 		return "", errors.New("ETHERSCAN_API_KEY environment variable is not set")
 	}
 
-	url := fmt.Sprintf("%s?chainid=%d&module=proxy&action=eth_blockNumber&apikey=%s", c.baseURL, c.chainId, c.apiKey)
+	url := fmt.Sprintf("%s?chainid=%d&module=proxy&action=eth_blockNumber&apikey=%s", c.baseURL, c.chainID, c.apiKey)
 
-	proxyResp, err := doRequest[string](c, ctx, url)
+	proxyResp, err := doRequest[string](ctx, c, url)
 	if err != nil {
 		return "", err
 	}
@@ -141,14 +141,14 @@ func (c *Client) FetchBlockDetails(ctx context.Context, blockNumber string) (str
 		return "", "", nil, errors.New("ETHERSCAN_API_KEY environment variable is not set")
 	}
 
-	url := fmt.Sprintf("%s?chainid=%d&module=proxy&action=eth_getBlockByNumber&tag=%s&boolean=false&apikey=%s", c.baseURL, c.chainId, blockNumber, c.apiKey)
+	url := fmt.Sprintf("%s?chainid=%d&module=proxy&action=eth_getBlockByNumber&tag=%s&boolean=false&apikey=%s", c.baseURL, c.chainID, blockNumber, c.apiKey)
 
-	proxyResp, err := doRequest[json.RawMessage](c, ctx, url)
+	proxyResp, err := doRequest[json.RawMessage](ctx, c, url)
 	if err != nil {
 		return "", "", nil, err
 	}
 
-	block, unixTime, _, _, err2 := extractBlockDetails(proxyResp, err)
+	block, unixTime, _, _, err2 := extractBlockDetails(proxyResp)
 	if err2 != nil {
 		return "", "", nil, err2
 	}
@@ -255,9 +255,9 @@ func (c *Client) IsContract(ctx context.Context, address string) (bool, error) {
 		return false, errors.New("ETHERSCAN_API_KEY environment variable is not set")
 	}
 
-	url := fmt.Sprintf("%s?chainid=%d&module=proxy&action=eth_getCode&address=%s&tag=latest&apikey=%s", c.baseURL, c.chainId, address, c.apiKey)
+	url := fmt.Sprintf("%s?chainid=%d&module=proxy&action=eth_getCode&address=%s&tag=latest&apikey=%s", c.baseURL, c.chainID, address, c.apiKey)
 
-	proxyResp, err := doRequest[string](c, ctx, url)
+	proxyResp, err := doRequest[string](ctx, c, url)
 	if err != nil {
 		return false, err
 	}
@@ -276,24 +276,24 @@ func (c *Client) IsContract(ctx context.Context, address string) (bool, error) {
 //   - The gas used by the transaction (hex).
 //   - The effective gas price (hex).
 //   - An error if the request fails.
-func (c *Client) FetchTransactionReceipt(ctx context.Context, hash string) (string, string, string, error) {
+func (c *Client) FetchTransactionReceipt(ctx context.Context, hash string) (string, string, string, bool, error) {
 	if c.apiKey == "" {
-		return "", "", "", errors.New("ETHERSCAN_API_KEY environment variable is not set")
+		return "", "", "", false, errors.New("ETHERSCAN_API_KEY environment variable is not set")
 	}
 
-	url := fmt.Sprintf("%s?chainid=%d&module=proxy&action=eth_getTransactionReceipt&txhash=%s&apikey=%s", c.baseURL, c.chainId, hash, c.apiKey)
+	url := fmt.Sprintf("%s?chainid=%d&module=proxy&action=eth_getTransactionReceipt&txhash=%s&apikey=%s", c.baseURL, c.chainID, hash, c.apiKey)
 
-	proxyResp, err := doRequest[receiptResult](c, ctx, url)
+	proxyResp, err := doRequest[receiptResultData](ctx, c, url)
 	if err != nil {
-		return "", "", "", err
+		return "", "", "", false, err
 	}
 
-	status, s, s2, s3, err2, done := extractTransactionReceipt(proxyResp)
+	status, s, s2, s3, done, err2 := extractTransactionReceipt(proxyResp)
 	if done {
-		return s, s2, s3, err2
+		return s, s2, s3, done, err2
 	}
 
-	return status, proxyResp.Result.GasUsed, proxyResp.Result.EffectiveGasPrice, nil
+	return status, proxyResp.Result.GasUsed, proxyResp.Result.EffectiveGasPrice, false, nil
 }
 
 // doRequest is a helper function that performs a generic Etherscan API request.
@@ -305,7 +305,7 @@ func (c *Client) FetchTransactionReceipt(ctx context.Context, hash string) (stri
 // Returns:
 //   - A pointer to the generic ProxyResponse[T] struct.
 //   - An error if the request or unmarshaling fails.
-func doRequest[T any](c *Client, ctx context.Context, url string) (*ProxyResponse[T], error) {
+func doRequest[T any](ctx context.Context, c *Client, url string) (*ProxyResponse[T], error) {
 	body, err := c.doRequestWithRetry(ctx, url)
 	if err != nil {
 		return nil, err

@@ -23,7 +23,7 @@ func New(ctx *context.ProgramContext, err error) Model {
 }
 
 // Update updates the error view component state. Currently a no-op.
-func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
+func (m Model) Update(_ tea.Msg) (Model, tea.Cmd) {
 	return m, nil
 }
 

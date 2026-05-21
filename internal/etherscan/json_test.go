@@ -12,30 +12,30 @@ import (
 func TestExtractTransactionReceipt(t *testing.T) {
 	tests := []struct {
 		name            string
-		proxyResp       *ProxyResponse[receiptResult]
+		proxyResp       *ProxyResponse[receiptResultData]
 		expectedStatus  string
 		expectedPending bool
 	}{
 		{
 			name: "Success",
-			proxyResp: &ProxyResponse[receiptResult]{
-				Result: receiptResult{Status: "0x1", GasUsed: "0x5208"},
+			proxyResp: &ProxyResponse[receiptResultData]{
+				Result: receiptResultData{Status: "0x1", GasUsed: "0x5208"},
 			},
 			expectedStatus:  "success",
 			expectedPending: false,
 		},
 		{
 			name: "Failed",
-			proxyResp: &ProxyResponse[receiptResult]{
-				Result: receiptResult{Status: "0x0", GasUsed: "0x5208"},
+			proxyResp: &ProxyResponse[receiptResultData]{
+				Result: receiptResultData{Status: "0x0", GasUsed: "0x5208"},
 			},
 			expectedStatus:  "failed",
 			expectedPending: false,
 		},
 		{
 			name: "Pending",
-			proxyResp: &ProxyResponse[receiptResult]{
-				Result: receiptResult{Status: "", GasUsed: ""},
+			proxyResp: &ProxyResponse[receiptResultData]{
+				Result: receiptResultData{Status: "", GasUsed: ""},
 			},
 			expectedStatus:  "",
 			expectedPending: true,
@@ -94,7 +94,7 @@ func TestExtractBlockDetails(t *testing.T) {
 			proxyResp := &ProxyResponse[json.RawMessage]{
 				Result: json.RawMessage(tt.json),
 			}
-			block, unixTime, _, txHash, err := extractBlockDetails(proxyResp, nil)
+			block, unixTime, _, txHash, err := extractBlockDetails(proxyResp)
 
 			if tt.expectedErr != "" {
 				if err == nil {
@@ -150,7 +150,7 @@ func TestBuildTransaction(t *testing.T) {
 		Result: json.RawMessage(`{"hash":"0xabc","blockNumber":"0xa","value":"0xde0b6b3a7640000","gas":"0x5208","gasPrice":"0x3b9aca00","nonce":"0x1","transactionIndex":"0x0","type":"0x2","to":"0x123","maxFeePerGas":"0x4b9aca00"}`),
 	}
 
-	tx, _, err := buildTransaction(context.Background(), "0xabc", proxyResp, nil, client)
+	tx, _, err := buildTransaction(context.Background(), "0xabc", proxyResp, client)
 	if err != nil {
 		t.Fatalf("buildTransaction failed: %v", err)
 	}

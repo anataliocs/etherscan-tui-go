@@ -203,6 +203,7 @@ func (m Model) renderInputData(width int) string {
 	var indicators string
 	if m.viewport.AtTop() && m.viewport.AtBottom() {
 		// All content fits, no indicators needed
+		_ = 0
 	} else {
 		if !m.viewport.AtTop() {
 			indicators += " ↑"
@@ -226,7 +227,10 @@ func (m Model) renderInputHex(hexInput string) string {
 	// Format as a grid: 16 bytes (32 chars) per row
 	// Example: 0000: 60 80 60 40 52 34 80 15 61 00 10 57 60 00 80 fd
 	for i := 0; i < len(input); i += 32 {
-		end := min(i+32, len(input))
+		end := i + 32
+		if end > len(input) {
+			end = len(input)
+		}
 		row := input[i:end]
 
 		// Offset
@@ -234,7 +238,10 @@ func (m Model) renderInputHex(hexInput string) string {
 
 		// Hex bytes
 		for j := 0; j < len(row); j += 2 {
-			byteEnd := min(j+2, len(row))
+			byteEnd := j + 2
+			if byteEnd > len(row) {
+				byteEnd = len(row)
+			}
 			b.WriteString(m.ctx.Theme.Value.Render(row[j:byteEnd]) + " ")
 		}
 
@@ -319,13 +326,13 @@ func (m Model) renderTimestamp(value string, style lipgloss.Style) string {
 	if err == nil {
 		duration := time.Since(t)
 		h := int(duration.Hours())
-		m_mins := int(duration.Minutes()) % 60
+		mMins := int(duration.Minutes()) % 60
 		s := int(duration.Seconds()) % 60
 		var agoStr string
 		if h > 0 {
-			agoStr = fmt.Sprintf(" (%dh %dm %ds ago)", h, m_mins, s)
-		} else if m_mins > 0 {
-			agoStr = fmt.Sprintf(" (%dm %ds ago)", m_mins, s)
+			agoStr = fmt.Sprintf(" (%dh %dm %ds ago)", h, mMins, s)
+		} else if mMins > 0 {
+			agoStr = fmt.Sprintf(" (%dm %ds ago)", mMins, s)
 		} else {
 			agoStr = fmt.Sprintf(" (%ds ago)", s)
 		}

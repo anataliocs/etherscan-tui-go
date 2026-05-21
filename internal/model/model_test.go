@@ -88,6 +88,7 @@ func TestUpdate_EnterKey(t *testing.T) {
 	// Test Enter starts loading
 	m.state = inputState
 	m.input.SetValue("0x123")
+	_ = m.input.Focus()
 	m2, cmd := m.Update(tea.KeyMsg{Type: tea.KeyEnter})
 	updatedModel := m2.(Model)
 	if updatedModel.state != loadingState {
@@ -212,75 +213,40 @@ func TestUpdate_LatestHash(t *testing.T) {
 	}
 }
 
-func TestUpdate_NextTransaction(t *testing.T) {
+func TestUpdate_Navigation(t *testing.T) {
 	client := etherscan.NewClient("test-key")
-	m := New(client)
 
-	// Set initial transaction
-	tx := &etherscan.Transaction{Hash: "0x123", BlockNumber: "10"}
-	m.tx = tx
-	m.state = resultState
-
-	// Test 'n' key
-	m2, cmd := m.Update(tea.KeyMsg{Runes: []rune("n"), Type: tea.KeyRunes})
-	updatedModel := m2.(Model)
-
-	if updatedModel.state != loadingState {
-		t.Errorf("expected state loadingState after 'n', got %v", updatedModel.state)
-	}
-	if updatedModel.loader.View() == "" || !strings.Contains(updatedModel.loader.View(), "next transaction") {
-		t.Errorf("expected loader to mention next transaction")
-	}
-	if cmd == nil {
-		t.Errorf("expected non-nil cmd after 'n'")
+	tests := []struct {
+		name       string
+		key        string
+		loaderText string
+	}{
+		{"next transaction (n)", "n", "next transaction"},
+		{"next transaction (N)", "N", "next transaction"},
+		{"previous transaction (p)", "p", "previous transaction"},
+		{"previous transaction (P)", "P", "previous transaction"},
 	}
 
-	// Test 'N' key
-	m.state = resultState
-	m3, cmd2 := m.Update(tea.KeyMsg{Runes: []rune("N"), Type: tea.KeyRunes})
-	updatedModel2 := m3.(Model)
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			m := New(client)
+			tx := &etherscan.Transaction{Hash: "0x123", BlockNumber: "10"}
+			m.tx = tx
+			m.state = resultState
 
-	if updatedModel2.state != loadingState {
-		t.Errorf("expected state loadingState after 'N', got %v", updatedModel2.state)
-	}
-	if cmd2 == nil {
-		t.Errorf("expected non-nil cmd after 'N'")
-	}
-}
+			m2, cmd := m.Update(tea.KeyMsg{Runes: []rune(tt.key), Type: tea.KeyRunes})
+			updatedModel := m2.(Model)
 
-func TestUpdate_PreviousTransaction(t *testing.T) {
-	client := etherscan.NewClient("test-key")
-	m := New(client)
-
-	// Set initial transaction
-	tx := &etherscan.Transaction{Hash: "0x123", BlockNumber: "10"}
-	m.tx = tx
-	m.state = resultState
-
-	// Test 'p' key
-	m2, cmd := m.Update(tea.KeyMsg{Runes: []rune("p"), Type: tea.KeyRunes})
-	updatedModel := m2.(Model)
-
-	if updatedModel.state != loadingState {
-		t.Errorf("expected state loadingState after 'p', got %v", updatedModel.state)
-	}
-	if updatedModel.loader.View() == "" || !strings.Contains(updatedModel.loader.View(), "previous transaction") {
-		t.Errorf("expected loader to mention previous transaction")
-	}
-	if cmd == nil {
-		t.Errorf("expected non-nil cmd after 'p'")
-	}
-
-	// Test 'P' key
-	m.state = resultState
-	m3, cmd2 := m.Update(tea.KeyMsg{Runes: []rune("P"), Type: tea.KeyRunes})
-	updatedModel2 := m3.(Model)
-
-	if updatedModel2.state != loadingState {
-		t.Errorf("expected state loadingState after 'P', got %v", updatedModel2.state)
-	}
-	if cmd2 == nil {
-		t.Errorf("expected non-nil cmd after 'P'")
+			if updatedModel.state != loadingState {
+				t.Errorf("expected state loadingState, got %v", updatedModel.state)
+			}
+			if updatedModel.loader.View() == "" || !strings.Contains(updatedModel.loader.View(), tt.loaderText) {
+				t.Errorf("expected loader to mention %s", tt.loaderText)
+			}
+			if cmd == nil {
+				t.Errorf("expected non-nil cmd")
+			}
+		})
 	}
 }
 

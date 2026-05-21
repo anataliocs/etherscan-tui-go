@@ -46,7 +46,7 @@ func (c *Client) doRequestWithRetry(ctx context.Context, url string) ([]byte, er
 		}
 
 		body, err := io.ReadAll(resp.Body)
-		resp.Body.Close()
+		_ = resp.Body.Close()
 		if err != nil {
 			lastErr = err
 			continue

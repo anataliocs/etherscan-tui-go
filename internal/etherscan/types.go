@@ -35,11 +35,11 @@ type Client struct {
 	apiKey  string
 	http    *http.Client
 	baseURL string
-	chainId int
+	chainID int
 }
 
-// receiptResult represents the result of a transaction receipt request.
-type receiptResult struct {
+// receiptResultData represents the result of a transaction receipt request.
+type receiptResultData struct {
 	Status            string `json:"status"`
 	GasUsed           string `json:"gasUsed"`
 	EffectiveGasPrice string `json:"effectiveGasPrice"`

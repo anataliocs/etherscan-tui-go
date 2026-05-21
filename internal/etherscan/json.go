@@ -21,7 +21,7 @@ import (
 //   - The built Transaction struct.
 //   - A pointer to Transaction (nil unless there's a specific return case).
 //   - An error if building the transaction fails.
-func buildTransaction(ctx context.Context, hash string, proxyResp *ProxyResponse[json.RawMessage], err error, c *Client) (Transaction, *Transaction, error) {
+func buildTransaction(ctx context.Context, hash string, proxyResp *ProxyResponse[json.RawMessage], c *Client) (Transaction, *Transaction, error) {
 	if len(proxyResp.Result) == 0 || string(proxyResp.Result) == "null" {
 		return Transaction{}, nil, errors.New("transaction not found or invalid response")
 	}
@@ -57,14 +57,14 @@ func buildTransaction(ctx context.Context, hash string, proxyResp *ProxyResponse
 	tx.TransactionIndex = hexToDecimal(tx.TransactionIndex)
 	tx.Type = formatTransactionType(tx.Type)
 
-	latestBlock, err := c.FetchLatestBlockNumber(ctx)
-	if err == nil {
+	latestBlock, lerr := c.FetchLatestBlockNumber(ctx)
+	if lerr == nil {
 		tx.Confirmations = calculateConfirmations(latestBlock, hexBlockNumber)
 	} else {
-		tx.Confirmations = err.Error()
+		tx.Confirmations = lerr.Error()
 	}
 
-	status, gasUsed, effectiveGasPrice, _ := c.FetchTransactionReceipt(ctx, hash)
+	status, gasUsed, effectiveGasPrice, _, _ := c.FetchTransactionReceipt(ctx, hash)
 	tx.Status = status
 	tx.GasUsed = hexToDecimal(gasUsed)
 	tx.TransactionFee = formatTransactionFee(gasUsed, hexGasPrice)
@@ -120,9 +120,9 @@ func buildTransaction(ctx context.Context, hash string, proxyResp *ProxyResponse
 //   - An empty string (kept for signature compatibility).
 //   - An error if extraction fails (currently always nil).
 //   - A boolean indicating if the receipt is missing/pending.
-func extractTransactionReceipt(proxyResp *ProxyResponse[receiptResult]) (string, string, string, string, error, bool) {
+func extractTransactionReceipt(proxyResp *ProxyResponse[receiptResultData]) (string, string, string, string, bool, error) {
 	if proxyResp.Result.Status == "" && proxyResp.Result.GasUsed == "" {
-		return "", "Pending", "", "", nil, true
+		return "", "Pending", "", "", true, nil
 	}
 
 	status := "Pending"
@@ -131,7 +131,7 @@ func extractTransactionReceipt(proxyResp *ProxyResponse[receiptResult]) (string,
 	} else if proxyResp.Result.Status == "0x0" {
 		status = "failed"
 	}
-	return status, "", "", "", nil, false
+	return status, "", "", "", false, nil
 }
 
 // extractBlockDetails parses block details from a raw proxy response.
@@ -145,7 +145,7 @@ func extractTransactionReceipt(proxyResp *ProxyResponse[receiptResult]) (string,
 //   - An empty string (kept for signature compatibility).
 //   - An empty string (kept for signature compatibility).
 //   - An error if parsing fails.
-func extractBlockDetails(proxyResp *ProxyResponse[json.RawMessage], err error) (struct {
+func extractBlockDetails(proxyResp *ProxyResponse[json.RawMessage]) (struct {
 	Timestamp     string   `json:"timestamp"`
 	BaseFeePerGas string   `json:"baseFeePerGas"`
 	Transactions  []string `json:"transactions"`
@@ -164,7 +164,7 @@ func extractBlockDetails(proxyResp *ProxyResponse[json.RawMessage], err error) (
 		Transactions  []string `json:"transactions"`
 	}
 
-	if err := json.Unmarshal(proxyResp.Result, &block); err != nil {
+	if uerr := json.Unmarshal(proxyResp.Result, &block); uerr != nil {
 		var msg string
 		if json.Unmarshal(proxyResp.Result, &msg) == nil {
 			return struct {
@@ -177,7 +177,7 @@ func extractBlockDetails(proxyResp *ProxyResponse[json.RawMessage], err error) (
 			Timestamp     string   `json:"timestamp"`
 			BaseFeePerGas string   `json:"baseFeePerGas"`
 			Transactions  []string `json:"transactions"`
-		}{}, 0, "", "", fmt.Errorf("unexpected response format for block: %w", err)
+		}{}, 0, "", "", fmt.Errorf("unexpected response format for block: %w", uerr)
 	}
 
 	if block.Timestamp == "" {
@@ -195,13 +195,13 @@ func extractBlockDetails(proxyResp *ProxyResponse[json.RawMessage], err error) (
 
 	// Parse hex timestamp
 	var unixTime int64
-	_, err = fmt.Sscanf(block.Timestamp, "0x%x", &unixTime)
-	if err != nil {
+	_, serr := fmt.Sscanf(block.Timestamp, "0x%x", &unixTime)
+	if serr != nil {
 		return struct {
 			Timestamp     string   `json:"timestamp"`
 			BaseFeePerGas string   `json:"baseFeePerGas"`
 			Transactions  []string `json:"transactions"`
-		}{}, 0, "", "", fmt.Errorf("failed to parse timestamp: %w", err)
+		}{}, 0, "", "", fmt.Errorf("failed to parse timestamp: %w", serr)
 	}
 	return block, unixTime, "", lastTxHash, nil
 }

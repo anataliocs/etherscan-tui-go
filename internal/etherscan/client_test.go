@@ -60,19 +60,19 @@ func TestFetchTransaction_MockAPI(t *testing.T) {
 				action := r.URL.Query().Get("action")
 				switch action {
 				case "eth_getTransactionByHash":
-					w.Write([]byte(tt.responseBody))
+					_, _ = w.Write([]byte(tt.responseBody))
 				case "eth_getBlockByNumber":
-					w.Write([]byte(`{"jsonrpc":"2.0","id":1,"result":{"timestamp":"0x65d507c0", "transactions": ["0x123", "0x456"]}}`)) // 2024-02-20T20:12:48Z
+					_, _ = w.Write([]byte(`{"jsonrpc":"2.0","id":1,"result":{"timestamp":"0x65d507c0", "transactions": ["0x123", "0x456"]}}`)) // 2024-02-20T20:12:48Z
 				case "eth_getTransactionReceipt":
-					w.Write([]byte(`{"jsonrpc":"2.0","id":1,"result":{"status":"0x1","gasUsed":"0x5208"}}`)) // 21000
+					_, _ = w.Write([]byte(`{"jsonrpc":"2.0","id":1,"result":{"status":"0x1","gasUsed":"0x5208"}}`)) // 21000
 				case "eth_blockNumber":
 					if tt.name == "Success Repro Sepolia" {
-						w.Write([]byte(`{"jsonrpc":"2.0","id":1,"result":"0x63ef52"}`))
+						_, _ = w.Write([]byte(`{"jsonrpc":"2.0","id":1,"result":"0x63ef52"}`))
 					} else {
-						w.Write([]byte(`{"jsonrpc":"2.0","id":1,"result":"0xb"}`)) // 11
+						_, _ = w.Write([]byte(`{"jsonrpc":"2.0","id":1,"result":"0xb"}`)) // 11
 					}
 				default:
-					w.Write([]byte(tt.responseBody))
+					_, _ = w.Write([]byte(tt.responseBody))
 				}
 			})
 
@@ -160,17 +160,14 @@ func TestFetchTransactionReceipt(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 				w.Header().Set("Content-Type", "application/json")
-				w.Write([]byte(tt.responseBody))
+				_, _ = w.Write([]byte(tt.responseBody))
 			}))
 			defer server.Close()
 
 			client := NewClient("test")
 			client.baseURL = server.URL
 
-			status, _, _, err := client.FetchTransactionReceipt(context.Background(), "0xabc")
-			if err != nil {
-				t.Fatalf("Unexpected error: %v", err)
-			}
+			status, _, _, _, _ := client.FetchTransactionReceipt(context.Background(), "0xabc")
 			if status != tt.expectedStatus {
 				t.Errorf("Expected status %s, got %s", tt.expectedStatus, status)
 			}

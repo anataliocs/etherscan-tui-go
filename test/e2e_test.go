@@ -24,35 +24,35 @@ func (m *mockClient) ChainID() int {
 	return 1
 }
 
-func (m *mockClient) SetChainID(id int) {
+func (m *mockClient) SetChainID(_ int) {
 }
 
-func (m *mockClient) FetchTransaction(ctx context.Context, hash string) (*etherscan.Transaction, error) {
+func (m *mockClient) FetchTransaction(_ context.Context, _ string) (*etherscan.Transaction, error) {
 	return nil, nil
 }
 
-func (m *mockClient) FetchLatestBlockNumber(ctx context.Context) (string, error) {
+func (m *mockClient) FetchLatestBlockNumber(_ context.Context) (string, error) {
 	return "", nil
 }
 
-func (m *mockClient) FetchBlockDetails(ctx context.Context, blockNumber string) (string, string, []string, error) {
+func (m *mockClient) FetchBlockDetails(_ context.Context, _ string) (string, string, []string, error) {
 	return "", "", nil, nil
 }
 
-func (m *mockClient) FetchNextTransactionHash(ctx context.Context, currentTx *etherscan.Transaction) (string, error) {
+func (m *mockClient) FetchNextTransactionHash(_ context.Context, _ *etherscan.Transaction) (string, error) {
 	return "", nil
 }
 
-func (m *mockClient) FetchPreviousTransactionHash(ctx context.Context, currentTx *etherscan.Transaction) (string, error) {
+func (m *mockClient) FetchPreviousTransactionHash(_ context.Context, _ *etherscan.Transaction) (string, error) {
 	return "", nil
 }
 
-func (m *mockClient) IsContract(ctx context.Context, address string) (bool, error) {
+func (m *mockClient) IsContract(_ context.Context, _ string) (bool, error) {
 	return false, nil
 }
 
-func (m *mockClient) FetchTransactionReceipt(ctx context.Context, hash string) (string, string, string, error) {
-	return "", "", "", nil
+func (m *mockClient) FetchTransactionReceipt(_ context.Context, _ string) (string, string, string, bool, error) {
+	return "", "", "", false, nil
 }
 
 func waitForText(t *testing.T, tm *teatest.TestModel, target string) {
@@ -82,31 +82,31 @@ func TestE2E(t *testing.T) {
 		case "eth_getTransactionByHash":
 			txhash := r.URL.Query().Get("txhash")
 			if txhash == "0x123" {
-				w.Write([]byte(`{"jsonrpc":"2.0","id":1,"result":{"hash":"0x123","blockNumber":"0x100","type":"0x2","from":"0xaaa","to":"0xbbb","value":"0xde0b6b3a7640000","input":"0x"}}`))
+				_, _ = w.Write([]byte(`{"jsonrpc":"2.0","id":1,"result":{"hash":"0x123","blockNumber":"0x100","type":"0x2","from":"0xaaa","to":"0xbbb","value":"0xde0b6b3a7640000","input":"0x"}}`))
 			} else if txhash == "0x456" {
-				w.Write([]byte(`{"jsonrpc":"2.0","id":1,"result":{"hash":"0x456","blockNumber":"0x100","type":"0x2","from":"0xccc","to":"0xddd","value":"0x0","input":"0x"}}`))
+				_, _ = w.Write([]byte(`{"jsonrpc":"2.0","id":1,"result":{"hash":"0x456","blockNumber":"0x100","type":"0x2","from":"0xccc","to":"0xddd","value":"0x0","input":"0x"}}`))
 			} else if txhash == "0x789" {
-				w.Write([]byte(`{"jsonrpc":"2.0","id":1,"result":{"hash":"0x789","blockNumber":"0x101","type":"0x2","from":"0xeee","to":"0xfff","value":"0x0","input":"0x"}}`))
+				_, _ = w.Write([]byte(`{"jsonrpc":"2.0","id":1,"result":{"hash":"0x789","blockNumber":"0x101","type":"0x2","from":"0xeee","to":"0xfff","value":"0x0","input":"0x"}}`))
 			} else {
-				w.Write([]byte(`{"jsonrpc":"2.0","id":1,"result":null}`))
+				_, _ = w.Write([]byte(`{"jsonrpc":"2.0","id":1,"result":null}`))
 			}
 		case "eth_getBlockByNumber":
 			tag := r.URL.Query().Get("tag")
 			if tag == "0x100" {
-				w.Write([]byte(`{"jsonrpc":"2.0","id":1,"result":{"timestamp":"0x65d507c0", "baseFeePerGas":"0x3b9aca00", "transactions": ["0x123", "0x456"]}}`))
+				_, _ = w.Write([]byte(`{"jsonrpc":"2.0","id":1,"result":{"timestamp":"0x65d507c0", "baseFeePerGas":"0x3b9aca00", "transactions": ["0x123", "0x456"]}}`))
 			} else if tag == "0x101" {
-				w.Write([]byte(`{"jsonrpc":"2.0","id":1,"result":{"timestamp":"0x65d507c0", "baseFeePerGas":"0x3b9aca00", "transactions": ["0x789"]}}`))
+				_, _ = w.Write([]byte(`{"jsonrpc":"2.0","id":1,"result":{"timestamp":"0x65d507c0", "baseFeePerGas":"0x3b9aca00", "transactions": ["0x789"]}}`))
 			} else {
-				w.Write([]byte(`{"jsonrpc":"2.0","id":1,"result":null}`))
+				_, _ = w.Write([]byte(`{"jsonrpc":"2.0","id":1,"result":null}`))
 			}
 		case "eth_getTransactionReceipt":
-			w.Write([]byte(`{"jsonrpc":"2.0","id":1,"result":{"status":"0x1","gasUsed":"0x5208","effectiveGasPrice":"0x3b9aca00"}}`))
+			_, _ = w.Write([]byte(`{"jsonrpc":"2.0","id":1,"result":{"status":"0x1","gasUsed":"0x5208","effectiveGasPrice":"0x3b9aca00"}}`))
 		case "eth_blockNumber":
-			w.Write([]byte(`{"jsonrpc":"2.0","id":1,"result":"0x100"}`))
+			_, _ = w.Write([]byte(`{"jsonrpc":"2.0","id":1,"result":"0x100"}`))
 		case "eth_getCode":
-			w.Write([]byte(`{"jsonrpc":"2.0","id":1,"result":"0x"}`))
+			_, _ = w.Write([]byte(`{"jsonrpc":"2.0","id":1,"result":"0x"}`))
 		default:
-			w.Write([]byte(`{"jsonrpc":"2.0","id":1,"result":null}`))
+			_, _ = w.Write([]byte(`{"jsonrpc":"2.0","id":1,"result":null}`))
 		}
 	})
 
@@ -114,8 +114,8 @@ func TestE2E(t *testing.T) {
 	defer server.Close()
 
 	// 2. Initialize Client and Model
-	os.Setenv("ETHERSCAN_API_KEY", "test-api-key")
-	defer os.Unsetenv("ETHERSCAN_API_KEY")
+	_ = os.Setenv("ETHERSCAN_API_KEY", "test-api-key")
+	defer func() { _ = os.Unsetenv("ETHERSCAN_API_KEY") }()
 
 	client := etherscan.NewClient("test-api-key")
 
