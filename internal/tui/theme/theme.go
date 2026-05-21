@@ -1,7 +1,9 @@
+// Package theme defines the visual styles and colors for the TUI.
 package theme
 
 import "github.com/charmbracelet/lipgloss"
 
+// Theme defines the collection of styles used throughout the application.
 type Theme struct {
 	Title     lipgloss.Style
 	Label     lipgloss.Style
@@ -21,6 +23,7 @@ type Theme struct {
 	Separator lipgloss.Style
 }
 
+// DefaultTheme returns the default adaptive theme for the TUI.
 func DefaultTheme() *Theme {
 	purple := lipgloss.AdaptiveColor{Light: "#7D56F4", Dark: "#7D56F4"}
 	return &Theme{

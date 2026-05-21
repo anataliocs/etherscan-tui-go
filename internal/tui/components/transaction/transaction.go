@@ -1,3 +1,4 @@
+// Package transaction provides a component for displaying detailed information about an Ethereum transaction.
 package transaction
 
 import (
@@ -13,12 +14,14 @@ import (
 	"github.com/charmbracelet/lipgloss"
 )
 
+// Model represents the transaction details component state.
 type Model struct {
 	ctx      *context.ProgramContext
 	tx       *etherscan.Transaction
 	viewport viewport.Model
 }
 
+// New creates a new transaction component with the given context and transaction data.
 func New(ctx *context.ProgramContext, tx *etherscan.Transaction) Model {
 	m := Model{
 		ctx: ctx,
@@ -33,16 +36,19 @@ func New(ctx *context.ProgramContext, tx *etherscan.Transaction) Model {
 	return m
 }
 
+// Update updates the transaction component state, primarily handling viewport scrolling.
 func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 	var cmd tea.Cmd
 	m.viewport, cmd = m.viewport.Update(msg)
 	return m, cmd
 }
 
+// UpdateProgramContext updates the transaction component's reference to the global program context.
 func (m *Model) UpdateProgramContext(ctx *context.ProgramContext) {
 	m.ctx = ctx
 }
 
+// View renders the transaction details and input data as a string.
 func (m Model) View() string {
 	if m.tx == nil {
 		return ""

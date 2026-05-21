@@ -1,3 +1,5 @@
+// Package header provides the header component for the Ethereum Transaction Explorer TUI.
+// It displays the title, current network, and latest block information.
 package header
 
 import (
@@ -10,6 +12,7 @@ import (
 	"github.com/charmbracelet/lipgloss"
 )
 
+// Model represents the header component state.
 type Model struct {
 	ctx             *context.ProgramContext
 	chainID         int
@@ -19,6 +22,7 @@ type Model struct {
 	spinner         spinner.Model
 }
 
+// New creates a new header component with the given context and chain ID.
 func New(ctx *context.ProgramContext, chainID int) Model {
 	s := spinner.New()
 	s.Spinner = spinner.Dot
@@ -31,6 +35,7 @@ func New(ctx *context.ProgramContext, chainID int) Model {
 	}
 }
 
+// Update updates the header component state based on the received message.
 func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 	var cmd tea.Cmd
 	if m.isFetchingBlock {
@@ -39,29 +44,35 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 	return m, cmd
 }
 
+// Tick returns a command that performs a spinner tick.
 func (m Model) Tick() tea.Cmd {
 	return m.spinner.Tick
 }
 
+// UpdateProgramContext updates the header's reference to the global program context.
 func (m *Model) UpdateProgramContext(ctx *context.ProgramContext) {
 	m.ctx = ctx
 }
 
+// SetLatestBlock updates the header with the latest block and transaction hash.
 func (m *Model) SetLatestBlock(block string, txHash string) {
 	m.latestBlock = block
 	m.latestTxHash = txHash
 	m.isFetchingBlock = false
 }
 
+// SetChainID updates the chain ID and resets the fetching state.
 func (m *Model) SetChainID(id int) {
 	m.chainID = id
 	m.isFetchingBlock = true
 }
 
+// LatestTxHash returns the latest transaction hash stored in the header.
 func (m Model) LatestTxHash() string {
 	return m.latestTxHash
 }
 
+// View renders the header component as a string.
 func (m Model) View() string {
 	var networkToggle string
 	if m.chainID == 1 {
