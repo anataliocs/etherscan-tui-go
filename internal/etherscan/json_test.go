@@ -1,7 +1,6 @@
 package etherscan
 
 import (
-	"context"
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
@@ -44,7 +43,7 @@ func TestExtractTransactionReceipt(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			status, _, _, _, err, pending := extractTransactionReceipt(tt.proxyResp)
+			status, _, _, _, pending, err := extractTransactionReceipt(tt.proxyResp)
 			if err != nil {
 				t.Fatalf("unexpected error: %v", err)
 			}
@@ -128,15 +127,15 @@ func TestBuildTransaction(t *testing.T) {
 		action := r.URL.Query().Get("action")
 		switch action {
 		case "eth_blockNumber":
-			w.Write([]byte(`{"jsonrpc":"2.0","id":1,"result":"0xc"}`)) // 12
+			w.Write([]byte(`{"jsonrpc":"2.0","id":1,"result":"0xc"}`)) // nolint:errcheck // mock
 		case "eth_getTransactionReceipt":
-			w.Write([]byte(`{"jsonrpc":"2.0","id":1,"result":{"status":"0x1","gasUsed":"0x5208", "effectiveGasPrice":"0x3b9aca00"}}`))
+			w.Write([]byte(`{"jsonrpc":"2.0","id":1,"result":{"status":"0x1","gasUsed":"0x5208", "effectiveGasPrice":"0x3b9aca00"}}`)) // nolint:errcheck // mock
 		case "eth_getBlockByNumber":
-			w.Write([]byte(`{"jsonrpc":"2.0","id":1,"result":{"timestamp":"0x65d507c0", "baseFeePerGas":"0x7"}}`))
+			w.Write([]byte(`{"jsonrpc":"2.0","id":1,"result":{"timestamp":"0x65d507c0", "baseFeePerGas":"0x7"}}`)) // nolint:errcheck // mock
 		case "eth_getCode":
-			w.Write([]byte(`{"jsonrpc":"2.0","id":1,"result":"0x1234"}`)) // is a contract
+			w.Write([]byte(`{"jsonrpc":"2.0","id":1,"result":"0x1234"}`)) // nolint:errcheck // mock
 		default:
-			w.Write([]byte(`{"jsonrpc":"2.0","id":1,"result":null}`))
+			w.Write([]byte(`{"jsonrpc":"2.0","id":1,"result":null}`)) // nolint:errcheck // mock
 		}
 	})
 
@@ -150,7 +149,7 @@ func TestBuildTransaction(t *testing.T) {
 		Result: json.RawMessage(`{"hash":"0xabc","blockNumber":"0xa","value":"0xde0b6b3a7640000","gas":"0x5208","gasPrice":"0x3b9aca00","nonce":"0x1","transactionIndex":"0x0","type":"0x2","to":"0x123","maxFeePerGas":"0x4b9aca00"}`),
 	}
 
-	tx, _, err := buildTransaction(context.Background(), "0xabc", proxyResp, client)
+	tx, _, err := buildTransaction(t.Context(), "0xabc", proxyResp, client)
 	if err != nil {
 		t.Fatalf("buildTransaction failed: %v", err)
 	}

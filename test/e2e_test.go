@@ -6,7 +6,6 @@ import (
 	"context"
 	"net/http"
 	"net/http/httptest"
-	"os"
 	"reflect"
 	"regexp"
 	"strings"
@@ -81,32 +80,34 @@ func TestE2E(t *testing.T) {
 		switch action {
 		case "eth_getTransactionByHash":
 			txhash := r.URL.Query().Get("txhash")
-			if txhash == "0x123" {
-				_, _ = w.Write([]byte(`{"jsonrpc":"2.0","id":1,"result":{"hash":"0x123","blockNumber":"0x100","type":"0x2","from":"0xaaa","to":"0xbbb","value":"0xde0b6b3a7640000","input":"0x"}}`))
-			} else if txhash == "0x456" {
-				_, _ = w.Write([]byte(`{"jsonrpc":"2.0","id":1,"result":{"hash":"0x456","blockNumber":"0x100","type":"0x2","from":"0xccc","to":"0xddd","value":"0x0","input":"0x"}}`))
-			} else if txhash == "0x789" {
-				_, _ = w.Write([]byte(`{"jsonrpc":"2.0","id":1,"result":{"hash":"0x789","blockNumber":"0x101","type":"0x2","from":"0xeee","to":"0xfff","value":"0x0","input":"0x"}}`))
-			} else {
-				_, _ = w.Write([]byte(`{"jsonrpc":"2.0","id":1,"result":null}`))
+			switch txhash {
+			case "0x123":
+				w.Write([]byte(`{"jsonrpc":"2.0","id":1,"result":{"hash":"0x123","blockNumber":"0x100","type":"0x2","from":"0xaaa","to":"0xbbb","value":"0xde0b6b3a7640000","input":"0x"}}`)) //nolint:errcheck // mock server
+			case "0x456":
+				w.Write([]byte(`{"jsonrpc":"2.0","id":1,"result":{"hash":"0x456","blockNumber":"0x100","type":"0x2","from":"0xccc","to":"0xddd","value":"0x0","input":"0x"}}`)) //nolint:errcheck // mock server
+			case "0x789":
+				w.Write([]byte(`{"jsonrpc":"2.0","id":1,"result":{"hash":"0x789","blockNumber":"0x101","type":"0x2","from":"0xeee","to":"0xfff","value":"0x0","input":"0x"}}`)) //nolint:errcheck // mock server
+			default:
+				w.Write([]byte(`{"jsonrpc":"2.0","id":1,"result":null}`)) //nolint:errcheck // mock server
 			}
 		case "eth_getBlockByNumber":
 			tag := r.URL.Query().Get("tag")
-			if tag == "0x100" {
-				_, _ = w.Write([]byte(`{"jsonrpc":"2.0","id":1,"result":{"timestamp":"0x65d507c0", "baseFeePerGas":"0x3b9aca00", "transactions": ["0x123", "0x456"]}}`))
-			} else if tag == "0x101" {
-				_, _ = w.Write([]byte(`{"jsonrpc":"2.0","id":1,"result":{"timestamp":"0x65d507c0", "baseFeePerGas":"0x3b9aca00", "transactions": ["0x789"]}}`))
-			} else {
-				_, _ = w.Write([]byte(`{"jsonrpc":"2.0","id":1,"result":null}`))
+			switch tag {
+			case "0x100":
+				w.Write([]byte(`{"jsonrpc":"2.0","id":1,"result":{"timestamp":"0x65d507c0", "baseFeePerGas":"0x3b9aca00", "transactions": ["0x123", "0x456"]}}`)) //nolint:errcheck // mock server
+			case "0x101":
+				w.Write([]byte(`{"jsonrpc":"2.0","id":1,"result":{"timestamp":"0x65d507c0", "baseFeePerGas":"0x3b9aca00", "transactions": ["0x789"]}}`)) //nolint:errcheck // mock server
+			default:
+				w.Write([]byte(`{"jsonrpc":"2.0","id":1,"result":null}`)) //nolint:errcheck // mock server
 			}
 		case "eth_getTransactionReceipt":
-			_, _ = w.Write([]byte(`{"jsonrpc":"2.0","id":1,"result":{"status":"0x1","gasUsed":"0x5208","effectiveGasPrice":"0x3b9aca00"}}`))
+			w.Write([]byte(`{"jsonrpc":"2.0","id":1,"result":{"status":"0x1","gasUsed":"0x5208","effectiveGasPrice":"0x3b9aca00"}}`)) //nolint:errcheck // mock server
 		case "eth_blockNumber":
-			_, _ = w.Write([]byte(`{"jsonrpc":"2.0","id":1,"result":"0x100"}`))
+			w.Write([]byte(`{"jsonrpc":"2.0","id":1,"result":"0x100"}`)) //nolint:errcheck // mock server
 		case "eth_getCode":
-			_, _ = w.Write([]byte(`{"jsonrpc":"2.0","id":1,"result":"0x"}`))
+			w.Write([]byte(`{"jsonrpc":"2.0","id":1,"result":"0x"}`)) //nolint:errcheck // mock server
 		default:
-			_, _ = w.Write([]byte(`{"jsonrpc":"2.0","id":1,"result":null}`))
+			w.Write([]byte(`{"jsonrpc":"2.0","id":1,"result":null}`)) //nolint:errcheck // mock server
 		}
 	})
 
@@ -114,8 +115,7 @@ func TestE2E(t *testing.T) {
 	defer server.Close()
 
 	// 2. Initialize Client and Model
-	_ = os.Setenv("ETHERSCAN_API_KEY", "test-api-key")
-	defer func() { _ = os.Unsetenv("ETHERSCAN_API_KEY") }()
+	t.Setenv("ETHERSCAN_API_KEY", "test-api-key")
 
 	client := etherscan.NewClient("test-api-key")
 

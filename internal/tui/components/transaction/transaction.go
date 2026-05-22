@@ -262,10 +262,10 @@ func (m Model) formatGasFees(tx *etherscan.Transaction) string {
 	}
 
 	base := cmp.Or(tx.BaseFeePerGas, "n/a")
-	max := cmp.Or(tx.MaxFeePerGas, "n/a")
+	maxFee := cmp.Or(tx.MaxFeePerGas, "n/a")
 	priority := cmp.Or(tx.MaxPriorityFeePerGas, "n/a")
 
-	return fmt.Sprintf("⛽ Base: %s Gwei | Max: %s Gwei | Max Priority: %s Gwei", base, max, priority)
+	return fmt.Sprintf("⛽ Base: %s Gwei | Max: %s Gwei | Max Priority: %s Gwei", base, maxFee, priority)
 }
 
 func (m Model) formatStatus(status string) string {
@@ -329,11 +329,12 @@ func (m Model) renderTimestamp(value string, style lipgloss.Style) string {
 		mMins := int(duration.Minutes()) % 60
 		s := int(duration.Seconds()) % 60
 		var agoStr string
-		if h > 0 {
+		switch {
+		case h > 0:
 			agoStr = fmt.Sprintf(" (%dh %dm %ds ago)", h, mMins, s)
-		} else if mMins > 0 {
+		case mMins > 0:
 			agoStr = fmt.Sprintf(" (%dm %ds ago)", mMins, s)
-		} else {
+		default:
 			agoStr = fmt.Sprintf(" (%ds ago)", s)
 		}
 		return style.Render(value) + " " + m.ctx.Theme.DarkGray.Render(agoStr)

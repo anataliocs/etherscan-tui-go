@@ -5,30 +5,150 @@ linters-settings:
   govet:
     enable-all: true
     disable:
-      - fieldalignment # too strict
+      - fieldalignment # too strict for most TUIs
   nolintlint:
     allow-unused: false
     require-explanation: true
     require-specific: true
+  revive:
+    enable-all-rules: true
+    rules:
+      - name: argument-limit
+        disabled: true
+      - name: function-result-limit
+        disabled: true
+      - name: cyclomatic
+        disabled: true
+      - name: cognitive-complexity
+        disabled: true
+      - name: max-public-structs
+        disabled: true
+      - name: file-header
+        disabled: true
+      - name: line-length-limit
+        disabled: true
+      - name: function-length
+        disabled: true
+      - name: add-constant
+        disabled: true
+      - name: empty-lines
+        disabled: true
+  usetesting:
+    context: true
+    loop: true
+  gosec:
+    config:
+      G306: "0600"
+      G302: "0600"
+  staticcheck:
+    checks: ["all"]
 
 linters:
-  enable:
+  enable-all: true
+  disable:
+    - gocyclo    # complexity
+    - lll        # line length
+    - nestif     # nested if
+    - dupl       # sometimes duplicate code is clearer in tests
+    - wsl        # too opinionated on whitespace
+    - nlreturn   # too opinionated on newlines before return
+    - exhaustruct # too strict for TUI models
+    - varnamelen # short names are idiomatic in Go
+    - wrapcheck  # can be noisy
+    - paralleltest # not always needed
+    - tparallel
+    - forbidigo  # depends on project
+    - gochecknoglobals
+    - gochecknoinits
+    - tagalign
+    - nonamedreturns
+    - interfacebloat
+    - ireturn
+    - depguard
+    - err113
+    - tenv
+    - unparam
+    - contextcheck
+    - testpackage
     - errcheck
-    - gosimple
-    - govet
-    - ineffassign
-    - staticcheck
-    - unused
-    - bodyclose
-    - dupl
+    - gocognit
+    - stylecheck
     - goconst
+    - recvcheck
+    - revive
+    - govet
+    - staticcheck
+    - gosec
+    - unused
+    - misspell
+    - ineffassign
+    - gosimple
+    - typecheck
+    - unused
+    - whitespace
+    - nolintlint
+    - cyclop
+    - gocognit
+    - testpackage
+    - paralleltest
+    - mnd
+    - funlen
+    - gocognit
+    - gocyclo
+    - nestif
+    - dupl
+    - nlreturn
+    - wsl
+    - maintidx
+    - forcetypeassert
+    - gochecknoglobals
+    - gochecknoinits
+    - interfacebloat
+    - ireturn
+    - depguard
+    - wrapcheck
+    - varnamelen
+    - exhaustruct
+    - forbidigo
+    - tagalign
+    - nonamedreturns
+    - err113
+    - tenv
+    - unparam
+    - contextcheck
+    - stylecheck
+    - goconst
+    - recvcheck
+    - gochecksumtype
+    - musttag
+    - copyloopvar
+    - intrange
+    - inamedparam
+    - fatcontext
+    - canonicalheader
+    - sloglint
+    - prealloc
     - gofmt
     - goimports
     - misspell
     - unconvert
     - unparam
     - whitespace
-    - revive
+    - gocheckcompilerdirectives
+    - containedctx
+    - makezero
+    - nakedret
+    - nilerr
+    - noctx
+    - rowserrcheck
+    - sqlclosecheck
+    - tparallel
+    - wastedassign
+    - exhaustive
+    - gci
+    - gofumpt
+    - perfsprint
+    - nilnil
 
 issues:
   exclude-use-default: false
@@ -36,5 +156,5 @@ issues:
   max-same-issues: 0
 
 run:
-  timeout: 5m
+  timeout: 10m
   tests: true

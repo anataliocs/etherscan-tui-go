@@ -82,14 +82,15 @@ func (m Model) View() string {
 	}
 
 	latestBlockDisplay := "Total Transactions: "
-	if m.isFetchingBlock {
+	switch {
+	case m.isFetchingBlock:
 		latestBlockDisplay += m.spinner.View()
-	} else if m.latestBlock != "" {
+	case m.latestBlock != "":
 		latestBlockDisplay += etherscan.FormatLatestBlock(m.latestBlock)
 		if m.latestTxHash != "" {
 			latestBlockDisplay += "\nLatest Transaction Hash: " + m.ctx.Theme.Inactive.Render(m.latestTxHash)
 		}
-	} else {
+	default:
 		latestBlockDisplay += "n/a"
 	}
 

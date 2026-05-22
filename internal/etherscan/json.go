@@ -64,8 +64,12 @@ func buildTransaction(ctx context.Context, hash string, proxyResp *ProxyResponse
 		tx.Confirmations = lerr.Error()
 	}
 
-	status, gasUsed, effectiveGasPrice, _, _ := c.FetchTransactionReceipt(ctx, hash)
-	tx.Status = status
+	status, gasUsed, effectiveGasPrice, _, err := c.FetchTransactionReceipt(ctx, hash)
+	if err != nil {
+		tx.Status = "error"
+	} else {
+		tx.Status = status
+	}
 	tx.GasUsed = hexToDecimal(gasUsed)
 	tx.TransactionFee = formatTransactionFee(gasUsed, hexGasPrice)
 

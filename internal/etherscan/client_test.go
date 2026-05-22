@@ -2,7 +2,6 @@
 package etherscan
 
 import (
-	"context"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -60,19 +59,19 @@ func TestFetchTransaction_MockAPI(t *testing.T) {
 				action := r.URL.Query().Get("action")
 				switch action {
 				case "eth_getTransactionByHash":
-					_, _ = w.Write([]byte(tt.responseBody))
+					w.Write([]byte(tt.responseBody)) // nolint:errcheck // mock server
 				case "eth_getBlockByNumber":
-					_, _ = w.Write([]byte(`{"jsonrpc":"2.0","id":1,"result":{"timestamp":"0x65d507c0", "transactions": ["0x123", "0x456"]}}`)) // 2024-02-20T20:12:48Z
+					w.Write([]byte(`{"jsonrpc":"2.0","id":1,"result":{"timestamp":"0x65d507c0", "transactions": ["0x123", "0x456"]}}`)) // nolint:errcheck // mock server
 				case "eth_getTransactionReceipt":
-					_, _ = w.Write([]byte(`{"jsonrpc":"2.0","id":1,"result":{"status":"0x1","gasUsed":"0x5208"}}`)) // 21000
+					w.Write([]byte(`{"jsonrpc":"2.0","id":1,"result":{"status":"0x1","gasUsed":"0x5208"}}`)) // nolint:errcheck // mock server
 				case "eth_blockNumber":
 					if tt.name == "Success Repro Sepolia" {
-						_, _ = w.Write([]byte(`{"jsonrpc":"2.0","id":1,"result":"0x63ef52"}`))
+						w.Write([]byte(`{"jsonrpc":"2.0","id":1,"result":"0x63ef52"}`)) // nolint:errcheck // mock server
 					} else {
-						_, _ = w.Write([]byte(`{"jsonrpc":"2.0","id":1,"result":"0xb"}`)) // 11
+						w.Write([]byte(`{"jsonrpc":"2.0","id":1,"result":"0xb"}`)) // nolint:errcheck // mock server
 					}
 				default:
-					_, _ = w.Write([]byte(tt.responseBody))
+					w.Write([]byte(tt.responseBody)) // nolint:errcheck // mock server
 				}
 			})
 
@@ -82,7 +81,7 @@ func TestFetchTransaction_MockAPI(t *testing.T) {
 			client := NewClient("test-api-key")
 			client.baseURL = server.URL
 
-			tx, err := client.FetchTransaction(context.Background(), "0xabc")
+			tx, err := client.FetchTransaction(t.Context(), "0xabc")
 
 			if tt.expectedErr != "" {
 				if err == nil {
@@ -160,14 +159,17 @@ func TestFetchTransactionReceipt(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 				w.Header().Set("Content-Type", "application/json")
-				_, _ = w.Write([]byte(tt.responseBody))
+				w.Write([]byte(tt.responseBody)) // nolint:errcheck // mock server
 			}))
 			defer server.Close()
 
 			client := NewClient("test")
 			client.baseURL = server.URL
 
-			status, _, _, _, _ := client.FetchTransactionReceipt(context.Background(), "0xabc")
+			status, _, _, _, err := client.FetchTransactionReceipt(t.Context(), "0xabc")
+			if err != nil {
+				t.Fatalf("unexpected error: %v", err)
+			}
 			if status != tt.expectedStatus {
 				t.Errorf("Expected status %s, got %s", tt.expectedStatus, status)
 			}

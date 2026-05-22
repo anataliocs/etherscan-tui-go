@@ -27,8 +27,7 @@ func New(ctx *context.ProgramContext) Model {
 // Update updates the loader component state based on the received message.
 func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 	var cmd tea.Cmd
-	switch msg := msg.(type) {
-	case progress.FrameMsg:
+	if msg, ok := msg.(progress.FrameMsg); ok {
 		var pm tea.Model
 		pm, cmd = m.progress.Update(msg)
 		if p, ok := pm.(progress.Model); ok {

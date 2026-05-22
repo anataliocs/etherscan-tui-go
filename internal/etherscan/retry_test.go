@@ -17,18 +17,18 @@ func TestDoRequestWithRetry(t *testing.T) {
 		if count < 3 {
 			// Simulate rate limit
 			w.WriteHeader(http.StatusOK)
-			_, _ = w.Write([]byte(`{"jsonrpc":"2.0","id":1,"result":"Max calls per sec rate limit reached"}`))
+			w.Write([]byte(`{"jsonrpc":"2.0","id":1,"result":"Max calls per sec rate limit reached"}`)) // nolint:errcheck // mock
 			return
 		}
 		w.WriteHeader(http.StatusOK)
-		_, _ = w.Write([]byte(`{"jsonrpc":"2.0","id":1,"result":"OK"}`))
+		w.Write([]byte(`{"jsonrpc":"2.0","id":1,"result":"OK"}`)) // nolint:errcheck // mock
 	}))
 	defer server.Close()
 
 	client := NewClient("test")
 	client.baseURL = server.URL
 
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	ctx, cancel := context.WithTimeout(t.Context(), 10*time.Second)
 	defer cancel()
 
 	body, err := client.doRequestWithRetry(ctx, server.URL)
