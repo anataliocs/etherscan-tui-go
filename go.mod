@@ -1,6 +1,6 @@
 module awesomeProject
 
-go 1.26
+go 1.26.3
 
 require (
 	github.com/charmbracelet/bubbles v1.0.0
