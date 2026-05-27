@@ -1,9 +1,12 @@
-.PHONY: all lint test test-e2e help
+.PHONY: all lint test test-e2e vulncheck help
 
-all: lint test test-e2e ## Run all checks
+all: lint vulncheck test test-e2e ## Run all checks
 
 lint: ## Run linter
 	golangci-lint run ./...
+
+vulncheck: ## Run vulnerability check
+	govulncheck ./...
 
 test: ## Run unit tests
 	go test ./... -v
