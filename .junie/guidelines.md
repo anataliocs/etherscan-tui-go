@@ -52,9 +52,10 @@ This project follows modern Go idioms and best practices as of Go 1.26. All cont
 ### Definition of Done
 Before marking a task as completed and submitting your changes, you MUST:
 1. **Run Linter**: Ensure the code passes linting by running `make lint` or `golangci-lint run ./...`.
-2. **Run Unit Tests**: All unit tests must pass. Run them with `make test` or `go test ./... -v`.
-3. **Run E2E Tests**: Ensure end-to-end functionality is preserved by running `make test-e2e`.
-4. **Go Mod Tidy**: Ensure `go.mod` and `go.sum` are up to date by running `go mod tidy && go mod verify`.
+2. **Run Vulnerability Check**: Ensure no known vulnerabilities exist by running `make vulncheck` or `govulncheck ./...`.
+3. **Run Unit Tests**: All unit tests must pass. Run them with `make test` or `go test ./... -v`.
+4. **Run E2E Tests**: Ensure end-to-end functionality is preserved by running `make test-e2e`.
+5. **Go Mod Tidy**: Ensure `go.mod` and `go.sum` are up to date by running `go mod tidy && go mod verify`.
 
 Failure to pass any of these checks means the task is NOT done.
 
