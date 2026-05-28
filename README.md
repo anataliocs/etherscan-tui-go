@@ -1,3 +1,13 @@
+<div style="text-align: center;" align="center"> 
+
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+
+<a href="https://github.com/anataliocs/etherscan-tui-go/actions/workflows/go.yml">
+    <img alt="Build+Test Status" src="https://github.com/anataliocs/etherscan-tui-go/actions/workflows/go.yml/badge.svg">
+</a>
+
+</div>
+
 # Ethereum Transaction Explorer
 
 A terminal(TUI) Ethereum transaction explorer built with Go and
