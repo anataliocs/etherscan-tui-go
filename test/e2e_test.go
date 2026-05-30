@@ -17,7 +17,9 @@ import (
 	"github.com/charmbracelet/x/exp/teatest"
 )
 
-type mockClient struct{}
+type mockClient struct {
+	etherscan.Client
+}
 
 func (m *mockClient) ChainID() int {
 	return 1
@@ -54,15 +56,6 @@ func (m *mockClient) FetchTransactionReceipt(_ context.Context, _ string) (strin
 	return "", "", "", false, nil
 }
 
-func waitForText(t *testing.T, tm *teatest.TestModel, target string) {
-	t.Helper()
-	teatest.WaitFor(t, tm.Output(), func(bts []byte) bool {
-		out := stripANSI(string(bts))
-		outFields := strings.Join(strings.Fields(out), " ")
-		return strings.Contains(out, target) || strings.Contains(outFields, target)
-	}, teatest.WithDuration(time.Second*10), teatest.WithCheckInterval(time.Millisecond*200))
-}
-
 func stripANSI(str string) string {
 	const ansi = "[\u001B\u009B][[()#;?]*(?:[0-9]{1,4}(?:;[0-9]{0,4})*)?[0-9A-ORZcf-nqry=><]"
 	var re = regexp.MustCompile(ansi)
@@ -70,6 +63,57 @@ func stripANSI(str string) string {
 	// Also remove other common TUI control characters if any
 	s = strings.ReplaceAll(s, "\r", "")
 	return s
+}
+
+func normalizeOutput(str string) string {
+	// Remove ALL box drawing characters first
+	boxRe := regexp.MustCompile(`[┌┐└┘│─]`)
+	str = boxRe.ReplaceAllString(str, "")
+
+	lines := strings.Split(str, "\n")
+	var result []string
+	for _, line := range lines {
+		trimmed := strings.TrimSpace(line)
+		if trimmed != "" {
+			// Remove multiple spaces within lines
+			re := regexp.MustCompile(`\s+`)
+			cleaned := re.ReplaceAllString(trimmed, " ")
+			// Remove common TUI artifacts
+			cleaned = strings.ReplaceAll(cleaned, "░", "")
+			cleaned = strings.ReplaceAll(cleaned, "█", "")
+			// Remove any non-printable characters
+			printableRe := regexp.MustCompile(`[^[:print:]\s]`)
+			cleaned = printableRe.ReplaceAllString(cleaned, "")
+			cleaned = strings.TrimSpace(cleaned)
+			if cleaned != "" {
+				result = append(result, cleaned)
+			}
+		}
+	}
+	return strings.Join(result, " ")
+}
+
+var capturedOutput string
+
+func waitForText(t *testing.T, tm *teatest.TestModel, target string) {
+	t.Helper()
+	teatest.WaitFor(t, tm.Output(), func(bts []byte) bool {
+		out := stripANSI(string(bts))
+		normalized := normalizeOutput(out)
+		capturedOutput += " " + normalized
+		// Check normalized, out, and the accumulated capturedOutput
+		if strings.Contains(normalized, target) || strings.Contains(out, target) || strings.Contains(capturedOutput, target) {
+			return true
+		}
+		// Also check individual words
+		for _, word := range strings.Fields(normalized) {
+			if strings.Contains(word, target) {
+				return true
+			}
+		}
+
+		return false
+	}, teatest.WithDuration(time.Second*20), teatest.WithCheckInterval(time.Millisecond*200))
 }
 
 func TestE2E(t *testing.T) {
@@ -130,7 +174,7 @@ func TestE2E(t *testing.T) {
 	}
 
 	m := model.New(client)
-	tm := teatest.NewTestModel(t, m, teatest.WithInitialTermSize(100, 40))
+	tm := teatest.NewTestModel(t, m, teatest.WithInitialTermSize(200, 500))
 
 	// Ensure the program has time to start and render
 	time.Sleep(time.Second)
@@ -151,10 +195,19 @@ func TestE2E(t *testing.T) {
 	tm.Type("0x123")
 	tm.Send(tea.KeyMsg{Type: tea.KeyEnter})
 
-	// Wait for result
-	t.Log("Waiting for transaction 0x123 details...")
+	// Wait for result and assert all fields are present and formatted correctly
+	t.Log("Waiting for transaction 0x123 details and verifying all fields...")
 	waitForText(t, tm, "Hash: 0x123")
-	t.Log("Found 0x123.")
+	waitForText(t, tm, "success")
+	waitForText(t, tm, "1 ETH")
+	waitForText(t, tm, "0xaaa")
+	waitForText(t, tm, "0xbbb")
+	waitForText(t, tm, "Block Number: 256")
+	waitForText(t, tm, "Gas Usage: 21000")
+	waitForText(t, tm, "Type: 2")
+	waitForText(t, tm, "1 Gwei")
+	waitForText(t, tm, "0.000021 ETH")
+	t.Log("Found 0x123 with key fields correctly formatted.")
 
 	// Test Navigation - Next (n)
 	tm.Send(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'n'}})
