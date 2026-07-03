@@ -81,7 +81,7 @@ func TestFetchTransaction_MockAPI(t *testing.T) {
 			client := NewClient("test-api-key")
 			client.baseURL = server.URL
 
-			tx, err := client.FetchTransaction(t.Context(), "0xabc")
+			tx, err := client.FetchTransaction(t.Context(), Hash("0xabc"))
 
 			if tt.expectedErr != "" {
 				if err == nil {
@@ -97,7 +97,7 @@ func TestFetchTransaction_MockAPI(t *testing.T) {
 				t.Fatalf("Unexpected error: %v", err)
 			}
 
-			if tx.Hash != tt.expectedHash {
+			if tx.Hash != Hash(tt.expectedHash) {
 				t.Errorf("Expected hash '%s', got '%s'", tt.expectedHash, tx.Hash)
 			}
 
@@ -166,7 +166,7 @@ func TestFetchTransactionReceipt(t *testing.T) {
 			client := NewClient("test")
 			client.baseURL = server.URL
 
-			status, _, _, _, err := client.FetchTransactionReceipt(t.Context(), "0xabc")
+			status, _, _, _, err := client.FetchTransactionReceipt(t.Context(), Hash("0xabc"))
 			if err != nil {
 				t.Fatalf("unexpected error: %v", err)
 			}

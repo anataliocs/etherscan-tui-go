@@ -75,7 +75,7 @@ func (m Model) Init() tea.Cmd {
 	)
 }
 
-func fetchTransactionCmd(ctx goctx.Context, hash string, client *etherscan.Client) tea.Cmd {
+func fetchTransactionCmd(ctx goctx.Context, hash etherscan.Hash, client *etherscan.Client) tea.Cmd {
 	return func() tea.Msg {
 		tx, err := client.FetchTransaction(ctx, hash)
 		if err != nil {
@@ -91,7 +91,7 @@ func fetchNextTransactionCmd(ctx goctx.Context, currentTx *etherscan.Transaction
 		if err != nil {
 			return errMsg(err)
 		}
-		tx, err := client.FetchTransaction(ctx, hash)
+		tx, err := client.FetchTransaction(ctx, etherscan.Hash(hash))
 		if err != nil {
 			return errMsg(err)
 		}
@@ -105,7 +105,7 @@ func fetchPreviousTransactionCmd(ctx goctx.Context, currentTx *etherscan.Transac
 		if err != nil {
 			return errMsg(err)
 		}
-		tx, err := client.FetchTransaction(ctx, hash)
+		tx, err := client.FetchTransaction(ctx, etherscan.Hash(hash))
 		if err != nil {
 			return errMsg(err)
 		}

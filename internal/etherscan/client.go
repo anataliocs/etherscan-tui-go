@@ -57,7 +57,7 @@ func (c *Client) ChainID() int {
 // Returns:
 //   - A pointer to the Transaction struct containing details.
 //   - An error if the request fails or the transaction is not found.
-func (c *Client) FetchTransaction(ctx context.Context, hash string) (*Transaction, error) {
+func (c *Client) FetchTransaction(ctx context.Context, hash Hash) (*Transaction, error) {
 	if c.apiKey == "" {
 		return nil, errors.New("ETHERSCAN_API_KEY environment variable is not set")
 	}
@@ -174,7 +174,7 @@ func (c *Client) FetchNextTransactionHash(ctx context.Context, currentTx *Transa
 	_, _, txHashes, err := c.FetchBlockDetails(ctx, fmt.Sprintf("0x%x", stringToBigInt(currentTx.BlockNumber)))
 	if err == nil {
 		for i, hash := range txHashes {
-			if strings.EqualFold(hash, currentTx.Hash) {
+			if strings.EqualFold(hash, string(currentTx.Hash)) {
 				if i+1 < len(txHashes) {
 					return txHashes[i+1], nil
 				}
@@ -215,7 +215,7 @@ func (c *Client) FetchPreviousTransactionHash(ctx context.Context, currentTx *Tr
 	_, _, txHashes, err := c.FetchBlockDetails(ctx, fmt.Sprintf("0x%x", stringToBigInt(currentTx.BlockNumber)))
 	if err == nil {
 		for i, hash := range txHashes {
-			if strings.EqualFold(hash, currentTx.Hash) {
+			if strings.EqualFold(hash, string(currentTx.Hash)) {
 				if i > 0 {
 					return txHashes[i-1], nil
 				}
@@ -250,7 +250,7 @@ func (c *Client) FetchPreviousTransactionHash(ctx context.Context, currentTx *Tr
 // Returns:
 //   - A boolean indicating if the address is a contract.
 //   - An error if the request fails.
-func (c *Client) IsContract(ctx context.Context, address string) (bool, error) {
+func (c *Client) IsContract(ctx context.Context, address Address) (bool, error) {
 	if c.apiKey == "" {
 		return false, errors.New("ETHERSCAN_API_KEY environment variable is not set")
 	}
@@ -276,7 +276,7 @@ func (c *Client) IsContract(ctx context.Context, address string) (bool, error) {
 //   - The gas used by the transaction (hex).
 //   - The effective gas price (hex).
 //   - An error if the request fails.
-func (c *Client) FetchTransactionReceipt(ctx context.Context, hash string) (string, string, string, bool, error) {
+func (c *Client) FetchTransactionReceipt(ctx context.Context, hash Hash) (string, string, string, bool, error) {
 	if c.apiKey == "" {
 		return "", "", "", false, errors.New("ETHERSCAN_API_KEY environment variable is not set")
 	}

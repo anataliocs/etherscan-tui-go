@@ -1,6 +1,7 @@
 package model
 
 import (
+	"awesomeProject/internal/etherscan"
 	"awesomeProject/internal/tui/components/transaction"
 	"context"
 	"strings"
@@ -59,7 +60,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				}
 				m.state = loadingState
 				m.loader.SetText(hash)
-				return m, tea.Batch(fetchTransactionCmd(context.Background(), hash, m.client), m.loader.SetPercent(0), tickCmd())
+				return m, tea.Batch(fetchTransactionCmd(context.Background(), etherscan.Hash(hash), m.client), m.loader.SetPercent(0), tickCmd())
 			}
 			if m.state == resultState || m.state == errorState {
 				m.state = inputState
@@ -74,13 +75,13 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 					m.input.SetValue(latestHash)
 					m.state = loadingState
 					m.loader.SetText(latestHash)
-					return m, tea.Batch(fetchTransactionCmd(context.Background(), latestHash, m.client), m.loader.SetPercent(0), tickCmd())
+					return m, tea.Batch(fetchTransactionCmd(context.Background(), etherscan.Hash(latestHash), m.client), m.loader.SetPercent(0), tickCmd())
 				}
 			}
 			if (strings.Contains(string(msg.Runes), "R") || strings.Contains(string(msg.Runes), "r")) && m.state == resultState {
 				hash := m.tx.Hash
 				m.state = loadingState
-				m.loader.SetText(hash)
+				m.loader.SetText(string(hash))
 				return m, tea.Batch(fetchTransactionCmd(context.Background(), hash, m.client), m.loader.SetPercent(0), tickCmd())
 			}
 			if (strings.Contains(string(msg.Runes), "N") || strings.Contains(string(msg.Runes), "n")) && m.state == resultState {

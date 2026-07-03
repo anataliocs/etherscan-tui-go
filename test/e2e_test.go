@@ -28,8 +28,8 @@ func (m *mockClient) ChainID() int {
 func (m *mockClient) SetChainID(_ int) {
 }
 
-func (m *mockClient) FetchTransaction(_ context.Context, _ string) (*etherscan.Transaction, error) {
-	return nil, nil
+func (m *mockClient) FetchTransaction(_ context.Context, _ etherscan.Hash) (*etherscan.Transaction, error) {
+	return &etherscan.Transaction{Hash: "0x123", BlockNumber: "12345"}, nil
 }
 
 func (m *mockClient) FetchLatestBlockNumber(_ context.Context) (string, error) {
@@ -48,12 +48,12 @@ func (m *mockClient) FetchPreviousTransactionHash(_ context.Context, _ *ethersca
 	return "", nil
 }
 
-func (m *mockClient) IsContract(_ context.Context, _ string) (bool, error) {
+func (m *mockClient) IsContract(_ context.Context, _ etherscan.Address) (bool, error) {
 	return false, nil
 }
 
-func (m *mockClient) FetchTransactionReceipt(_ context.Context, _ string) (string, string, string, bool, error) {
-	return "", "", "", false, nil
+func (m *mockClient) FetchTransactionReceipt(_ context.Context, _ etherscan.Hash) (string, string, string, bool, error) {
+	return "success", "0x5208", "0x3b9aca00", false, nil
 }
 
 func stripANSI(str string) string {

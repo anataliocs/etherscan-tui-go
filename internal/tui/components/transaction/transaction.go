@@ -112,12 +112,12 @@ func (m Model) renderDetails(width int) string {
 		style lipgloss.Style
 	}{
 		{"Status", m.formatStatus(m.tx.Status), m.getStatusStyle(m.tx.Status)},
-		{"Hash", m.tx.Hash, m.ctx.Theme.Value},
+		{"Hash", string(m.tx.Hash), m.ctx.Theme.Value},
 		{"Type", m.tx.Type, m.ctx.Theme.Value},
 		{"Timestamp", m.tx.Timestamp, m.ctx.Theme.Value},
 		{"Block Number", m.tx.BlockNumber, m.ctx.Theme.Value},
-		{"From", m.tx.From, m.ctx.Theme.Value},
-		{"To", m.tx.To, m.ctx.Theme.Value},
+		{"From", string(m.tx.From), m.ctx.Theme.Value},
+		{"To", string(m.tx.To), m.ctx.Theme.Value},
 		{"Value", m.tx.Value, m.ctx.Theme.Value},
 		{"Gas Limit", m.tx.Gas, m.ctx.Theme.Value},
 		{"Gas Usage", m.tx.GasUsed, m.ctx.Theme.Value},

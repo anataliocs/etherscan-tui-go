@@ -95,3 +95,49 @@ Failure to pass any of these checks means the task is NOT done.
 - **Composition**: Use `lipgloss.JoinVertical` and `lipgloss.JoinHorizontal` for complex layouts instead of manual string concatenation.
 - **Style Inheritance**: Build complex styles by extending base styles using `.Inherit()` or by layering properties.
 - **Performance**: Pre-define styles as variables where possible to avoid re-allocating them in the `View()` loop.
+
+## Systems Architecture
+
+### Enforcing Strong Invariants
+- PRINCIPLE: Make invalid states unrepresentable instead of defensive coding.
+- Do not pass loose primitives (e.g., strings, dicts) for complex domain concepts. Wrap them in strongly typed objects or value types.
+- If a variable can be nil, it must be explicitly handled at the boundaries of the system (e.g., API entry points), not deep within the business logic.
+- Before adding an 'if' check or a fallback for a bad state, evaluate if the bad state can be prevented entirely by refactoring the input types or function signatures.
+
+### Avoid Excessive Defensiveness
+- PRINCIPLE: Fail Fast. If an unexpected state occurs, allow the application to crash or throw a loud, descriptive exception immediately. Do not build "silent fallbacks" or return mock data to paper over an error.
+
+### Prevent Overly Local Reasoning
+- Before writing code, locate existing implementations of similar logic across the entire repository. Use grep/search tools to check for duplicated patterns.
+- PRINCIPLE: Reusable abstractions that can be shared across the codebase.
+- Aim for max behavior per line of code without affecting readability.
+- Task Sequence:
+    1. Identify the file to modify.
+    2. Map out all upstream callers and downstream dependencies of this file.
+    3. Write a 2-sentence "Impact Analysis" explaining how your local change affects the broader system architecture.
+- If a modification requires changing the same logic in more than two places, stop and propose a shared abstraction or utility function instead.
+
+### THE DRY PRINCIPLE (DON'T REPEAT YOURSELF)
+
+Treat code duplication as a critical bug. NEVER copy-paste existing logic or reinvent existing patterns.
+
+#### 1. Mandatory Discovery Phase
+Before writing new code, you MUST explicitly search the codebase.
+- Use your grep/search tools to look for keywords related to the task.
+- Check common shared directories (e.g., `/utils`, `/helpers`, `/shared`, `/components`, `/models`).
+- If a function exists that solves 80% of your problem, do not write a new one. Refactor the existing function to accept a new parameter or handle the extra 20% variation safely.
+
+#### 2. The Rule of Three (Refactoring Trigger)
+- If you find yourself writing the exact same or highly similar logic for the second time, a local comment or small helper is acceptable.
+- If you find the logic is needed in a third place, you are forbidden from writing it inline. You must stop, extract that logic into a single, reusable utility function or component, and refactor the previous two places to use your new shared implementation.
+
+#### 3. Single Source of Truth
+Every piece of knowledge, business logic, or data structure must have a single, unambiguous, authoritative representation within the system.
+- Do not duplicate hardcoded strings, magic numbers, status codes, or API routes. Use enums, constants files, or configuration objects.
+- Do not duplicate data validation logic. Use a single model schema or validation function at the boundaries.
+
+#### 4. DRY vs. Over-Engineering Guardrail
+While avoiding duplication, do not invent overly complex, deeply nested, or hyper-generalized abstractions (e.g., massive generic wrappers) just to save two lines of code. Prefer clean, readable, flat abstractions. If two pieces of code look identical but serve entirely different business domains and change for different reasons, treat them as separate.
+
+
+

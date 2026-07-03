@@ -21,7 +21,7 @@ import (
 //   - The built Transaction struct.
 //   - A pointer to Transaction (nil unless there's a specific return case).
 //   - An error if building the transaction fails.
-func buildTransaction(ctx context.Context, hash string, proxyResp *ProxyResponse[json.RawMessage], c *Client) (Transaction, *Transaction, error) {
+func buildTransaction(ctx context.Context, hash Hash, proxyResp *ProxyResponse[json.RawMessage], c *Client) (Transaction, *Transaction, error) {
 	if len(proxyResp.Result) == 0 || string(proxyResp.Result) == "null" {
 		return Transaction{}, nil, errors.New("transaction not found or invalid response")
 	}

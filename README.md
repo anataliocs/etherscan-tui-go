@@ -16,6 +16,8 @@ using the Etherscan API V2 all in your terminal.
 
 Built with `bubbletea`, `bubbles`, and `lipgloss`.
 
+See [examples](https://github.com/charmbracelet/bubbletea/tree/main/examples)
+
 ### Current Supported EVM Networks
 - [Ethereum](https://etherscan.io/)
 - [Sepolia](https://sepolia.etherscan.io/)
@@ -42,7 +44,7 @@ ETHERSCAN_API_KEY=your_etherscan_api_key_here
 **Install dependencies**:
 
 ```bash
-go mod tidy
+go mod tidy && go mod verify
 ```
 
 ### Build
