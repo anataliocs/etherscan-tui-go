@@ -141,7 +141,12 @@ func (c *Client) FetchBlockDetails(ctx context.Context, blockNumber string) (str
 		return "", "", nil, errors.New("ETHERSCAN_API_KEY environment variable is not set")
 	}
 
-	url := fmt.Sprintf("%s?chainid=%d&module=proxy&action=eth_getBlockByNumber&tag=%s&boolean=false&apikey=%s", c.baseURL, c.chainID, blockNumber, c.apiKey)
+	tag := blockNumber
+	if bi := stringToBigInt(blockNumber); bi != nil {
+		tag = fmt.Sprintf("0x%x", bi)
+	}
+
+	url := fmt.Sprintf("%s?chainid=%d&module=proxy&action=eth_getBlockByNumber&tag=%s&boolean=false&apikey=%s", c.baseURL, c.chainID, tag, c.apiKey)
 
 	proxyResp, err := doRequest[json.RawMessage](ctx, c, url)
 	if err != nil {

@@ -2,6 +2,7 @@ package model
 
 import (
 	"awesomeProject/internal/etherscan"
+	"awesomeProject/internal/tui/components/block"
 	"awesomeProject/internal/tui/components/transaction"
 	"context"
 	"strings"
@@ -22,6 +23,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.header.UpdateProgramContext(m.ctx)
 		m.input.UpdateProgramContext(m.ctx)
 		m.transaction.UpdateProgramContext(m.ctx)
+		m.block.UpdateProgramContext(m.ctx)
 		m.footer.UpdateProgramContext(m.ctx)
 		m.errorView.UpdateProgramContext(m.ctx)
 		m.loader.UpdateProgramContext(m.ctx)
@@ -60,7 +62,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				}
 				m.state = loadingState
 				m.loader.SetText(hash)
-				return m, tea.Batch(fetchTransactionCmd(context.Background(), etherscan.Hash(hash), m.client), m.loader.SetPercent(0), tickCmd())
+				return m, tea.Batch(detectAndFetchCmd(context.Background(), hash, m.client), m.loader.SetPercent(0), tickCmd())
 			}
 			if m.state == resultState || m.state == errorState {
 				m.state = inputState
@@ -97,9 +99,17 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 	case txMsg:
 		m.tx = msg.tx
+		m.blockData = nil // Reset block data
 		m.state = resultState
 		m.transaction = transaction.New(m.ctx, m.tx)
 		m.footer.SetHelp("(r) refresh • (p) prev tx • (n) next tx • (backspace/enter/esc) search again • (ctrl+c) quit")
+		return m, m.loader.SetPercent(1.0)
+	case blockMsg:
+		m.blockData = msg.block
+		m.tx = nil // Reset transaction data
+		m.state = resultState
+		m.block = block.New(m.ctx, m.blockData)
+		m.footer.SetHelp("(backspace/enter/esc) search again • (ctrl+c) quit")
 		return m, m.loader.SetPercent(1.0)
 	case latestBlockMsg:
 		m.header.SetLatestBlock(msg.blockNumber, msg.lastTxHash)
@@ -130,6 +140,9 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	cmds = append(cmds, cmd)
 
 	m.transaction, cmd = m.transaction.Update(msg)
+	cmds = append(cmds, cmd)
+
+	m.block, cmd = m.block.Update(msg)
 	cmds = append(cmds, cmd)
 
 	m.footer, cmd = m.footer.Update(msg)

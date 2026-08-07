@@ -39,6 +39,15 @@ type Transaction struct {
 	Savings               string  `json:"savings,omitzero"`
 }
 
+// Block represents an Ethereum block as returned and formatted for the TUI.
+type Block struct {
+	Hash          string
+	Number        string
+	Timestamp     string
+	BaseFeePerGas string
+	Transactions  []string
+}
+
 // Client is a client for the Etherscan API.
 type Client struct {
 	apiKey  string

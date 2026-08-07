@@ -25,7 +25,7 @@ func TestView_States(t *testing.T) {
 			setup: func(m *Model) {
 				m.header.SetLatestBlock("123", "0xabc")
 			},
-			contains: []string{"Ethereum Transaction Explorer", "Enter transaction hash:"},
+			contains: []string{"Ethereum Transaction Explorer", "Enter transaction or block hash:"},
 		},
 		{
 			name:  "loadingState",

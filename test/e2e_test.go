@@ -183,7 +183,7 @@ func TestE2E(t *testing.T) {
 	t.Log("Waiting for initial screen...")
 	teatest.WaitFor(t, tm.Output(), func(bts []byte) bool {
 		out := stripANSI(string(bts))
-		return strings.Contains(out, "Ethereum Transaction Explorer") && strings.Contains(out, "Enter transaction hash")
+		return strings.Contains(out, "Ethereum Transaction Explorer") && strings.Contains(out, "Enter transaction or block hash")
 	}, teatest.WithDuration(time.Second*10))
 	t.Log("Initial screen found.")
 
@@ -223,7 +223,7 @@ func TestE2E(t *testing.T) {
 
 	// Test Search Again (Esc)
 	tm.Send(tea.KeyMsg{Type: tea.KeyEsc})
-	waitForText(t, tm, "Enter transaction hash")
+	waitForText(t, tm, "Enter transaction or block hash")
 
 	// Test Error State
 	tm.Type("0xnonexistent")
@@ -232,7 +232,7 @@ func TestE2E(t *testing.T) {
 
 	// Back to search from error
 	tm.Send(tea.KeyMsg{Type: tea.KeyEnter})
-	waitForText(t, tm, "Enter transaction hash")
+	waitForText(t, tm, "Enter transaction or block hash")
 
 	// Test Quit (Ctrl+C)
 	tm.Send(tea.KeyMsg{Type: tea.KeyCtrlC})

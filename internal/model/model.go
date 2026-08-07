@@ -3,6 +3,7 @@ package model
 
 import (
 	"awesomeProject/internal/etherscan"
+	"awesomeProject/internal/tui/components/block"
 	"awesomeProject/internal/tui/components/errorview"
 	"awesomeProject/internal/tui/components/footer"
 	"awesomeProject/internal/tui/components/header"
@@ -12,6 +13,8 @@ import (
 	"awesomeProject/internal/tui/context"
 	"awesomeProject/internal/tui/theme"
 	goctx "context"
+	"strconv"
+	"strings"
 
 	tea "github.com/charmbracelet/bubbletea"
 )
@@ -32,15 +35,18 @@ type Model struct {
 	header      header.Model
 	input       input.Model
 	transaction transaction.Model
+	block       block.Model
 	footer      footer.Model
 	errorView   errorview.Model
 	loader      loader.Model
 	client      *etherscan.Client
 	tx          *etherscan.Transaction
+	blockData   *etherscan.Block
 	err         error
 }
 
 type txMsg struct{ tx *etherscan.Transaction }
+type blockMsg struct{ block *etherscan.Block }
 type latestBlockMsg struct {
 	blockNumber string
 	lastTxHash  string
@@ -59,6 +65,7 @@ func New(client *etherscan.Client) Model {
 		header:      header.New(pCtx, client.ChainID()),
 		input:       input.New(pCtx),
 		transaction: transaction.New(pCtx, nil),
+		block:       block.New(pCtx, nil),
 		footer:      footer.New(pCtx, "(tab) switch network • (l) latest hash • (enter) search • (ctrl+c) quit"),
 		errorView:   errorview.New(pCtx, nil),
 		loader:      loader.New(pCtx),
@@ -73,6 +80,43 @@ func (m Model) Init() tea.Cmd {
 		fetchLatestBlockCmd(goctx.Background(), m.client),
 		m.header.Tick(),
 	)
+}
+
+func detectAndFetchCmd(ctx goctx.Context, hash string, client *etherscan.Client) tea.Cmd {
+	return func() tea.Msg {
+		hash = strings.TrimSpace(hash)
+		if isBlockNumber(hash) {
+			timestamp, baseFee, txHashes, err := client.FetchBlockDetails(ctx, hash)
+			if err == nil {
+				return blockMsg{block: &etherscan.Block{
+					Hash:          "",
+					Number:        hash,
+					Timestamp:     timestamp,
+					BaseFeePerGas: baseFee,
+					Transactions:  txHashes,
+				}}
+			}
+		}
+
+		// try fetch transaction
+		tx, err := client.FetchTransaction(ctx, etherscan.Hash(hash))
+		if err != nil {
+			return errMsg(err)
+		}
+		return txMsg{tx: tx}
+	}
+}
+
+func isBlockNumber(s string) bool {
+	if _, err := strconv.Atoi(s); err == nil {
+		return true
+	}
+	if strings.HasPrefix(s, "0x") {
+		// A transaction hash is exactly 66 characters long (0x + 64 hex characters).
+		// A block number in hex will be much shorter.
+		return len(s) <= 20
+	}
+	return false
 }
 
 func fetchTransactionCmd(ctx goctx.Context, hash etherscan.Hash, client *etherscan.Client) tea.Cmd {

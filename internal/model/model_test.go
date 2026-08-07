@@ -266,3 +266,26 @@ func TestLoadingViewNoFooter(t *testing.T) {
 		t.Errorf("expected loading view NOT to contain footer help text")
 	}
 }
+
+func TestIsBlockNumber(t *testing.T) {
+	tests := []struct {
+		input    string
+		expected bool
+	}{
+		{"123", true},
+		{"0x123", true},
+		{"0x", true},
+		{"0xabc1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcd", false}, // 66 chars with 0x
+		{"abc1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcd", false},   // 64 chars no 0x
+		{"abc", false},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.input, func(t *testing.T) {
+			result := isBlockNumber(tt.input)
+			if result != tt.expected {
+				t.Errorf("isBlockNumber(%s) = %v, want %v", tt.input, result, tt.expected)
+			}
+		})
+	}
+}

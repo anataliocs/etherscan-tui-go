@@ -11,9 +11,13 @@ func (m Model) View() string {
 	case loadingState:
 		return "\n" + m.loader.View() + "\n"
 	case resultState:
-		s = m.transaction.View()
-		if m.ctx.ScreenWidth >= 80 {
-			footerWidth = int(float64(m.ctx.ScreenWidth) * 0.6)
+		if m.tx != nil {
+			s = m.transaction.View()
+			if m.ctx.ScreenWidth >= 80 {
+				footerWidth = int(float64(m.ctx.ScreenWidth) * 0.6)
+			}
+		} else if m.blockData != nil {
+			s = m.block.View()
 		}
 	case errorState:
 		s = m.errorView.View()

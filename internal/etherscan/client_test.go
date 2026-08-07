@@ -176,3 +176,47 @@ func TestFetchTransactionReceipt(t *testing.T) {
 		})
 	}
 }
+
+func TestFetchBlockDetails(t *testing.T) {
+	tests := []struct {
+		name        string
+		blockNumber string
+		expectedTag string
+	}{
+		{
+			name:        "Decimal Block Number",
+			blockNumber: "123",
+			expectedTag: "0x7b", // 123 in hex
+		},
+		{
+			name:        "Hex Block Number",
+			blockNumber: "0x7b",
+			expectedTag: "0x7b",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			var capturedTag string
+			server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				capturedTag = r.URL.Query().Get("tag")
+				w.Header().Set("Content-Type", "application/json")
+				// Return a valid JSON to avoid parsing errors
+				w.Write([]byte(`{"jsonrpc":"2.0","id":1,"result":{"timestamp":"0x65d507c0", "transactions": []}}`))
+			}))
+			defer server.Close()
+
+			client := NewClient("test")
+			client.baseURL = server.URL
+
+			_, _, _, err := client.FetchBlockDetails(t.Context(), tt.blockNumber)
+			if err != nil {
+				t.Fatalf("unexpected error: %v", err)
+			}
+
+			if capturedTag != tt.expectedTag {
+				t.Errorf("Expected tag %s, got %s", tt.expectedTag, capturedTag)
+			}
+		})
+	}
+}

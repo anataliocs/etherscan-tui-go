@@ -42,7 +42,7 @@ func (m *Model) UpdateProgramContext(ctx *context.ProgramContext) {
 
 // View renders the input component as a string.
 func (m Model) View() string {
-	return "Enter transaction hash:\n" + m.textInput.View()
+	return "Enter transaction or block hash:\n" + m.textInput.View()
 }
 
 // Value returns the current text value of the input.

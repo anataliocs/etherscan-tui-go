@@ -48,7 +48,7 @@ func TestInput(t *testing.T) {
 	t.Run("View", func(t *testing.T) {
 		m := New(ctx)
 		view := m.View()
-		if !strings.Contains(view, "Enter transaction hash:") {
+		if !strings.Contains(view, "Enter transaction or block hash:") {
 			t.Error("view should contain prompt")
 		}
 	})
