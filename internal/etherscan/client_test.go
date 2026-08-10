@@ -209,7 +209,7 @@ func TestFetchBlockDetails(t *testing.T) {
 			client := NewClient("test")
 			client.baseURL = server.URL
 
-			_, _, _, err := client.FetchBlockDetails(t.Context(), tt.blockNumber)
+			_, err := client.FetchBlockDetails(t.Context(), tt.blockNumber)
 			if err != nil {
 				t.Fatalf("unexpected error: %v", err)
 			}

@@ -39,6 +39,14 @@ type Transaction struct {
 	Savings               string  `json:"savings,omitzero"`
 }
 
+// BlockDetails represents the details of an Ethereum block.
+type BlockDetails struct {
+	Timestamp     string
+	BaseFeePerGas string
+	Transactions  []string
+	Miner         string
+}
+
 // Block represents an Ethereum block as returned and formatted for the TUI.
 type Block struct {
 	Hash          string
@@ -46,6 +54,7 @@ type Block struct {
 	Timestamp     string
 	BaseFeePerGas string
 	Transactions  []string
+	FeeRecipient  string
 }
 
 // Client is a client for the Etherscan API.

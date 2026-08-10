@@ -126,19 +126,10 @@ func (c *Client) FetchLatestBlockNumber(ctx context.Context) (string, error) {
 	return proxyResp.Result, nil
 }
 
-// FetchBlockDetails retrieves block timestamp, base fee and the list of transaction hashes for a given block number.
-// Parameters:
-//   - ctx: The context for the request.
-//   - blockNumber: The block number (hex or tag) to fetch details for.
-//
-// Returns:
-//   - The formatted timestamp string.
-//   - The base fee per gas as a hex string.
-//   - The list of transaction hashes in the block.
-//   - An error if the request fails.
-func (c *Client) FetchBlockDetails(ctx context.Context, blockNumber string) (string, string, []string, error) {
+// FetchBlockDetails retrieves block details.
+func (c *Client) FetchBlockDetails(ctx context.Context, blockNumber string) (*BlockDetails, error) {
 	if c.apiKey == "" {
-		return "", "", nil, errors.New("ETHERSCAN_API_KEY environment variable is not set")
+		return nil, errors.New("ETHERSCAN_API_KEY environment variable is not set")
 	}
 
 	tag := blockNumber
@@ -150,15 +141,20 @@ func (c *Client) FetchBlockDetails(ctx context.Context, blockNumber string) (str
 
 	proxyResp, err := doRequest[json.RawMessage](ctx, c, url)
 	if err != nil {
-		return "", "", nil, err
+		return nil, err
 	}
 
-	block, unixTime, _, _, err2 := extractBlockDetails(proxyResp)
+	block, unixTime, miner, _, err2 := extractBlockDetails(proxyResp)
 	if err2 != nil {
-		return "", "", nil, err2
+		return nil, err2
 	}
 
-	return time.Unix(unixTime, 0).UTC().Format(time.RFC3339), block.BaseFeePerGas, block.Transactions, nil
+	return &BlockDetails{
+		Timestamp:     time.Unix(unixTime, 0).UTC().Format(time.RFC3339),
+		BaseFeePerGas: block.BaseFeePerGas,
+		Transactions:  block.Transactions,
+		Miner:         miner,
+	}, nil
 }
 
 // FetchNextTransactionHash attempts to find the next transaction hash after the given one in the same block.
@@ -176,12 +172,12 @@ func (c *Client) FetchNextTransactionHash(ctx context.Context, currentTx *Transa
 	}
 
 	// 1. Try to find the next transaction in the current block
-	_, _, txHashes, err := c.FetchBlockDetails(ctx, fmt.Sprintf("0x%x", stringToBigInt(currentTx.BlockNumber)))
+	details, err := c.FetchBlockDetails(ctx, fmt.Sprintf("0x%x", stringToBigInt(currentTx.BlockNumber)))
 	if err == nil {
-		for i, hash := range txHashes {
+		for i, hash := range details.Transactions {
 			if strings.EqualFold(hash, string(currentTx.Hash)) {
-				if i+1 < len(txHashes) {
-					return txHashes[i+1], nil
+				if i+1 < len(details.Transactions) {
+					return details.Transactions[i+1], nil
 				}
 				break
 			}
@@ -190,16 +186,16 @@ func (c *Client) FetchNextTransactionHash(ctx context.Context, currentTx *Transa
 
 	// 2. If it's the last one or error fetching current block, try the next block
 	nextBlockNum := new(big.Int).Add(stringToBigInt(currentTx.BlockNumber), big.NewInt(1))
-	_, _, nextTxHashes, err := c.FetchBlockDetails(ctx, fmt.Sprintf("0x%x", nextBlockNum))
+	nextDetails, err := c.FetchBlockDetails(ctx, fmt.Sprintf("0x%x", nextBlockNum))
 	if err != nil {
 		return "", fmt.Errorf("could not fetch next block: %w", err)
 	}
 
-	if len(nextTxHashes) == 0 {
+	if len(nextDetails.Transactions) == 0 {
 		return "", errors.New("no transactions found in the next block")
 	}
 
-	return nextTxHashes[0], nil
+	return nextDetails.Transactions[0], nil
 }
 
 // FetchPreviousTransactionHash attempts to find the previous transaction hash before the given one in the same block.
@@ -217,12 +213,12 @@ func (c *Client) FetchPreviousTransactionHash(ctx context.Context, currentTx *Tr
 	}
 
 	// 1. Try to find the previous transaction in the current block
-	_, _, txHashes, err := c.FetchBlockDetails(ctx, fmt.Sprintf("0x%x", stringToBigInt(currentTx.BlockNumber)))
+	details, err := c.FetchBlockDetails(ctx, fmt.Sprintf("0x%x", stringToBigInt(currentTx.BlockNumber)))
 	if err == nil {
-		for i, hash := range txHashes {
+		for i, hash := range details.Transactions {
 			if strings.EqualFold(hash, string(currentTx.Hash)) {
 				if i > 0 {
-					return txHashes[i-1], nil
+					return details.Transactions[i-1], nil
 				}
 				break
 			}
@@ -235,16 +231,16 @@ func (c *Client) FetchPreviousTransactionHash(ctx context.Context, currentTx *Tr
 		return "", errors.New("already at block 0")
 	}
 
-	_, _, prevTxHashes, err := c.FetchBlockDetails(ctx, fmt.Sprintf("0x%x", prevBlockNum))
+	prevDetails, err := c.FetchBlockDetails(ctx, fmt.Sprintf("0x%x", prevBlockNum))
 	if err != nil {
 		return "", fmt.Errorf("could not fetch previous block: %w", err)
 	}
 
-	if len(prevTxHashes) == 0 {
+	if len(prevDetails.Transactions) == 0 {
 		return "", errors.New("no transactions found in the previous block")
 	}
 
-	return prevTxHashes[len(prevTxHashes)-1], nil
+	return prevDetails.Transactions[len(prevDetails.Transactions)-1], nil
 }
 
 // IsContract checks if the given address is a smart contract.

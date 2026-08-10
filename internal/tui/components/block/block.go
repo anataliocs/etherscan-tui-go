@@ -68,6 +68,7 @@ func (m Model) renderDetails(width int) string {
 		{"Number", m.block.Number},
 		{"Timestamp", m.block.Timestamp},
 		{"Base Fee", m.block.BaseFeePerGas},
+		{"Fee Recipient", m.block.FeeRecipient},
 		{"Transactions", fmt.Sprintf("%d", len(m.block.Transactions))},
 	}
 
