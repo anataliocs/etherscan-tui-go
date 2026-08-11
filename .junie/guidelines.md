@@ -2,6 +2,12 @@
 
 This project follows modern Go idioms and best practices as of Go 1.26. All contributions should adhere to these guidelines.
 
+## IMPORTANT Add Go to PATH 
+- Ensure you can run `make all`
+```
+export PATH=$PATH:/usr/local/go/bin && make all
+```
+
 ## General Principles
 
 - **Simplicity**: Write clear, simple code. Avoid over-engineering.

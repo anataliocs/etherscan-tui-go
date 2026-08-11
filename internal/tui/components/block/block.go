@@ -60,17 +60,43 @@ func (m Model) renderDetails(width int) string {
 
 	labelStyle := m.ctx.Theme.Label.Copy().Width(min(18, width-10))
 
-	items := []struct {
+	var items []struct {
 		label string
 		value string
-	}{
-		{"Hash", m.block.Hash},
-		{"Number", m.block.Number},
-		{"Timestamp", m.block.Timestamp},
-		{"Base Fee", m.block.BaseFeePerGas},
-		{"Fee Recipient", m.block.FeeRecipient},
-		{"Transactions", fmt.Sprintf("%d", len(m.block.Transactions))},
 	}
+
+	items = append(items, struct {
+		label string
+		value string
+	}{"Hash", m.block.Hash})
+	items = append(items, struct {
+		label string
+		value string
+	}{"Number", m.block.Number})
+	items = append(items, struct {
+		label string
+		value string
+	}{"Timestamp", m.block.Timestamp})
+	items = append(items, struct {
+		label string
+		value string
+	}{"Base Fee", m.block.BaseFeePerGas})
+	items = append(items, struct {
+		label string
+		value string
+	}{"Fee Recipient", m.block.FeeRecipient})
+
+	if m.block.Status != "" {
+		items = append(items, struct {
+			label string
+			value string
+		}{"Status", m.block.Status})
+	}
+
+	items = append(items, struct {
+		label string
+		value string
+	}{"Transactions", fmt.Sprintf("%d", len(m.block.Transactions))})
 
 	for _, item := range items {
 		b.WriteString(labelStyle.Render(item.label+":") + " " + m.ctx.Theme.Value.Render(item.value) + "\n")

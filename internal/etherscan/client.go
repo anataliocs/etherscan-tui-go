@@ -154,6 +154,7 @@ func (c *Client) FetchBlockDetails(ctx context.Context, blockNumber string) (*Bl
 		BaseFeePerGas: block.BaseFeePerGas,
 		Transactions:  block.Transactions,
 		Miner:         miner,
+		Status:        "Unfinalized", // Defaulting for now
 	}, nil
 }
 

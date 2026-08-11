@@ -45,6 +45,7 @@ type BlockDetails struct {
 	BaseFeePerGas string
 	Transactions  []string
 	Miner         string
+	Status        string
 }
 
 // Block represents an Ethereum block as returned and formatted for the TUI.
@@ -55,6 +56,7 @@ type Block struct {
 	BaseFeePerGas string
 	Transactions  []string
 	FeeRecipient  string
+	Status        string
 }
 
 // Client is a client for the Etherscan API.

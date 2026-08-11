@@ -95,6 +95,7 @@ func detectAndFetchCmd(ctx goctx.Context, hash string, client *etherscan.Client)
 					BaseFeePerGas: details.BaseFeePerGas,
 					Transactions:  details.Transactions,
 					FeeRecipient:  details.Miner,
+					Status:        details.Status,
 				}}
 			}
 		}
