@@ -149,12 +149,16 @@ func (c *Client) FetchBlockDetails(ctx context.Context, blockNumber string) (*Bl
 		return nil, err2
 	}
 
+	slot, epoch := calculateSlotEpoch(unixTime)
+
 	return &BlockDetails{
 		Timestamp:     time.Unix(unixTime, 0).UTC().Format(time.RFC3339),
 		BaseFeePerGas: block.BaseFeePerGas,
 		Transactions:  block.Transactions,
 		Miner:         miner,
 		Status:        "Unfinalized", // Defaulting for now
+		Slot:          slot,
+		Epoch:         epoch,
 	}, nil
 }
 

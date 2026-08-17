@@ -141,3 +141,14 @@ func calculateConfirmations(latestBlock, txBlock string) string {
 	conf := new(big.Int).Add(diff, big.NewInt(1))
 	return conf.String()
 }
+
+// calculateSlotEpoch calculates the slot and epoch from a Unix timestamp.
+func calculateSlotEpoch(unixTime int64) (string, string) {
+	const genesisTime = 1606824023
+	if unixTime < genesisTime {
+		return "N/A", "N/A"
+	}
+	slot := (unixTime - genesisTime) / 12
+	epoch := slot / 32
+	return fmt.Sprintf("%d", slot), fmt.Sprintf("%d", epoch)
+}

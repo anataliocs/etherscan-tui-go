@@ -46,6 +46,8 @@ type BlockDetails struct {
 	Transactions  []string
 	Miner         string
 	Status        string
+	Slot          string
+	Epoch         string
 }
 
 // Block represents an Ethereum block as returned and formatted for the TUI.
@@ -57,6 +59,8 @@ type Block struct {
 	Transactions  []string
 	FeeRecipient  string
 	Status        string
+	Slot          string
+	Epoch         string
 }
 
 // Client is a client for the Etherscan API.

@@ -86,6 +86,11 @@ func (m Model) renderDetails(width int) string {
 		value string
 	}{"Fee Recipient", m.block.FeeRecipient})
 
+	items = append(items, struct {
+		label string
+		value string
+	}{"Proposed On", fmt.Sprintf("Slot %s, Epoch %s", m.block.Slot, m.block.Epoch)})
+
 	if m.block.Status != "" {
 		items = append(items, struct {
 			label string
