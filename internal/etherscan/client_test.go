@@ -199,10 +199,14 @@ func TestFetchBlockDetails(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			var capturedTag string
 			server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-				capturedTag = r.URL.Query().Get("tag")
+				action := r.URL.Query().Get("action")
 				w.Header().Set("Content-Type", "application/json")
-				// Return a valid JSON to avoid parsing errors
-				w.Write([]byte(`{"jsonrpc":"2.0","id":1,"result":{"timestamp":"0x65d507c0", "transactions": []}}`))
+				if action == "eth_getBlockByNumber" {
+					capturedTag = r.URL.Query().Get("tag")
+					w.Write([]byte(`{"jsonrpc":"2.0","id":1,"result":{"timestamp":"0x65d507c0", "transactions": []}}`))
+				} else if action == "getblockreward" {
+					w.Write([]byte(`{"status":"1", "message":"OK", "result":{"blockReward":"0x0"}}`))
+				}
 			}))
 			defer server.Close()
 
@@ -218,5 +222,31 @@ func TestFetchBlockDetails(t *testing.T) {
 				t.Errorf("Expected tag %s, got %s", tt.expectedTag, capturedTag)
 			}
 		})
+	}
+}
+
+func TestFetchBlockDetails_Reward(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		action := r.URL.Query().Get("action")
+		if action == "eth_getBlockByNumber" {
+			w.Write([]byte(`{"jsonrpc":"2.0","id":1,"result":{"timestamp":"0x65d507c0", "transactions": [], "baseFeePerGas": "0x7"}}`))
+		} else if action == "getblockreward" {
+			// "0xde0b6b3a7640000" is 1 ETH
+			w.Write([]byte(`{"status":"1", "message":"OK", "result":{"blockReward":"0xde0b6b3a7640000"}}`))
+		}
+	}))
+	defer server.Close()
+
+	client := NewClient("test")
+	client.baseURL = server.URL
+
+	details, err := client.FetchBlockDetails(t.Context(), "123")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	if !strings.Contains(details.BlockReward, "1 ETH") {
+		t.Errorf("Expected BlockReward to contain '1 ETH', got %s", details.BlockReward)
 	}
 }

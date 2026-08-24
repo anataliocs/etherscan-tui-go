@@ -126,6 +126,36 @@ func (c *Client) FetchLatestBlockNumber(ctx context.Context) (string, error) {
 	return proxyResp.Result, nil
 }
 
+// FetchBlockReward retrieves block reward details.
+func (c *Client) FetchBlockReward(ctx context.Context, blockNumber string) (string, error) {
+	if c.apiKey == "" {
+		return "", errors.New("ETHERSCAN_API_KEY environment variable is not set")
+	}
+
+	tag := blockNumber
+	if bi := stringToBigInt(blockNumber); bi != nil {
+		tag = bi.String()
+	}
+
+	url := fmt.Sprintf("%s?chainid=%d&module=block&action=getblockreward&blockno=%s&apikey=%s", c.baseURL, c.chainID, tag, c.apiKey)
+
+	body, err := c.doRequestWithRetry(ctx, url)
+	if err != nil {
+		return "", err
+	}
+
+	var resp BlockRewardResponse
+	if err := json.Unmarshal(body, &resp); err != nil {
+		return "", fmt.Errorf("failed to decode response: %w", err)
+	}
+
+	if resp.Status != "1" {
+		return "", fmt.Errorf("Etherscan API error: %s", resp.Message)
+	}
+
+	return resp.Result.BlockReward, nil
+}
+
 // FetchBlockDetails retrieves block details.
 func (c *Client) FetchBlockDetails(ctx context.Context, blockNumber string) (*BlockDetails, error) {
 	if c.apiKey == "" {
@@ -151,6 +181,11 @@ func (c *Client) FetchBlockDetails(ctx context.Context, blockNumber string) (*Bl
 
 	slot, epoch := calculateSlotEpoch(unixTime)
 
+	blockReward, err := c.FetchBlockReward(ctx, blockNumber)
+	if err != nil {
+		blockReward = "0"
+	}
+
 	return &BlockDetails{
 		Timestamp:     time.Unix(unixTime, 0).UTC().Format(time.RFC3339),
 		BaseFeePerGas: block.BaseFeePerGas,
@@ -159,6 +194,7 @@ func (c *Client) FetchBlockDetails(ctx context.Context, blockNumber string) (*Bl
 		Status:        "Unfinalized", // Defaulting for now
 		Slot:          slot,
 		Epoch:         epoch,
+		BlockReward:   formatValue(blockReward),
 	}, nil
 }
 

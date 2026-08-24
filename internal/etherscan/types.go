@@ -48,6 +48,7 @@ type BlockDetails struct {
 	Status        string
 	Slot          string
 	Epoch         string
+	BlockReward   string
 }
 
 // Block represents an Ethereum block as returned and formatted for the TUI.
@@ -61,6 +62,7 @@ type Block struct {
 	Status        string
 	Slot          string
 	Epoch         string
+	BlockReward   string
 }
 
 // Client is a client for the Etherscan API.
@@ -76,4 +78,13 @@ type receiptResultData struct {
 	Status            string `json:"status"`
 	GasUsed           string `json:"gasUsed"`
 	EffectiveGasPrice string `json:"effectiveGasPrice"`
+}
+
+// BlockRewardResponse represents the result of a block reward request.
+type BlockRewardResponse struct {
+	Status  string `json:"status"`
+	Message string `json:"message"`
+	Result  struct {
+		BlockReward string `json:"blockReward"`
+	} `json:"result"`
 }

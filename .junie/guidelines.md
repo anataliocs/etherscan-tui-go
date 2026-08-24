@@ -14,6 +14,9 @@ export PATH=$PATH:/usr/local/go/bin && make all
 - **Explicit over Implicit**: Explicit error handling and configuration are preferred.
 - **Consistency**: Follow the existing style and patterns within the codebase.
 
+## Planning Stage
+- When adding a new field to a component, ensure the client REST API request actually contains the required value
+
 ## Modern Go Idioms (Go 1.26+)
 
 ### Error Handling

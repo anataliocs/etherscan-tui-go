@@ -21,6 +21,9 @@ func TestBlock(t *testing.T) {
 		FeeRecipient:  "0xabc",
 		Status:        "Finalized",
 		Transactions:  []string{"tx1", "tx2"},
+		Slot:          "10",
+		Epoch:         "1",
+		BlockReward:   "5 ETH",
 	}
 
 	t.Run("New", func(t *testing.T) {
@@ -67,6 +70,15 @@ func TestBlock(t *testing.T) {
 		}
 		if !strings.Contains(view, "2") { // Number of transactions
 			t.Error("view should contain transaction count")
+		}
+		if !strings.Contains(view, "Slot 10, Epoch 1") {
+			t.Error("view should contain slot and epoch")
+		}
+		if !strings.Contains(view, "Block Reward") {
+			t.Error("view should contain 'Block Reward'")
+		}
+		if !strings.Contains(view, "5 ETH") {
+			t.Error("view should contain block reward value")
 		}
 	})
 
