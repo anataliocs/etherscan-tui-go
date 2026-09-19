@@ -99,6 +99,7 @@ func detectAndFetchCmd(ctx goctx.Context, hash string, client *etherscan.Client)
 					Slot:          details.Slot,
 					Epoch:         details.Epoch,
 					BlockReward:   details.BlockReward,
+					Size:          details.Size,
 				}}
 			}
 		}

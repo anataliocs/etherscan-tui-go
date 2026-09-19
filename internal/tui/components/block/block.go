@@ -96,6 +96,11 @@ func (m Model) renderDetails(width int) string {
 		value string
 	}{"Block Reward", m.block.BlockReward})
 
+	items = append(items, struct {
+		label string
+		value string
+	}{"Size", m.block.Size + " bytes"})
+
 	if m.block.Status != "" {
 		items = append(items, struct {
 			label string

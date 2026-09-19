@@ -24,6 +24,7 @@ func TestBlock(t *testing.T) {
 		Slot:          "10",
 		Epoch:         "1",
 		BlockReward:   "5 ETH",
+		Size:          "1024",
 	}
 
 	t.Run("New", func(t *testing.T) {
@@ -79,6 +80,9 @@ func TestBlock(t *testing.T) {
 		}
 		if !strings.Contains(view, "5 ETH") {
 			t.Error("view should contain block reward value")
+		}
+		if !strings.Contains(view, "1024 bytes") {
+			t.Error("view should contain size")
 		}
 	})
 

@@ -49,6 +49,7 @@ type BlockDetails struct {
 	Slot          string
 	Epoch         string
 	BlockReward   string
+	Size          string
 }
 
 // Block represents an Ethereum block as returned and formatted for the TUI.
@@ -63,6 +64,7 @@ type Block struct {
 	Slot          string
 	Epoch         string
 	BlockReward   string
+	Size          string
 }
 
 // Client is a client for the Etherscan API.

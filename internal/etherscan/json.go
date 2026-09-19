@@ -154,6 +154,7 @@ func extractBlockDetails(proxyResp *ProxyResponse[json.RawMessage]) (struct {
 	BaseFeePerGas string   `json:"baseFeePerGas"`
 	Transactions  []string `json:"transactions"`
 	Miner         string   `json:"miner"`
+	Size          string   `json:"size"`
 }, int64, string, string, error) {
 	if len(proxyResp.Result) == 0 || string(proxyResp.Result) == "null" {
 		return struct {
@@ -161,6 +162,7 @@ func extractBlockDetails(proxyResp *ProxyResponse[json.RawMessage]) (struct {
 			BaseFeePerGas string   `json:"baseFeePerGas"`
 			Transactions  []string `json:"transactions"`
 			Miner         string   `json:"miner"`
+			Size          string   `json:"size"`
 		}{}, 0, "", "", errors.New("block not found")
 	}
 
@@ -169,6 +171,7 @@ func extractBlockDetails(proxyResp *ProxyResponse[json.RawMessage]) (struct {
 		BaseFeePerGas string   `json:"baseFeePerGas"`
 		Transactions  []string `json:"transactions"`
 		Miner         string   `json:"miner"`
+		Size          string   `json:"size"`
 	}
 
 	if uerr := json.Unmarshal(proxyResp.Result, &block); uerr != nil {
@@ -179,6 +182,7 @@ func extractBlockDetails(proxyResp *ProxyResponse[json.RawMessage]) (struct {
 				BaseFeePerGas string   `json:"baseFeePerGas"`
 				Transactions  []string `json:"transactions"`
 				Miner         string   `json:"miner"`
+				Size          string   `json:"size"`
 			}{}, 0, "", "", fmt.Errorf("Etherscan API error: %s", msg)
 		}
 		return struct {
@@ -186,6 +190,7 @@ func extractBlockDetails(proxyResp *ProxyResponse[json.RawMessage]) (struct {
 			BaseFeePerGas string   `json:"baseFeePerGas"`
 			Transactions  []string `json:"transactions"`
 			Miner         string   `json:"miner"`
+			Size          string   `json:"size"`
 		}{}, 0, "", "", fmt.Errorf("unexpected response format for block: %w", uerr)
 	}
 
@@ -195,6 +200,7 @@ func extractBlockDetails(proxyResp *ProxyResponse[json.RawMessage]) (struct {
 			BaseFeePerGas string   `json:"baseFeePerGas"`
 			Transactions  []string `json:"transactions"`
 			Miner         string   `json:"miner"`
+			Size          string   `json:"size"`
 		}{}, 0, "", "", errors.New("timestamp not found in block")
 	}
 
@@ -212,6 +218,7 @@ func extractBlockDetails(proxyResp *ProxyResponse[json.RawMessage]) (struct {
 			BaseFeePerGas string   `json:"baseFeePerGas"`
 			Transactions  []string `json:"transactions"`
 			Miner         string   `json:"miner"`
+			Size          string   `json:"size"`
 		}{}, 0, "", "", fmt.Errorf("failed to parse timestamp: %w", serr)
 	}
 	return block, unixTime, block.Miner, lastTxHash, nil
