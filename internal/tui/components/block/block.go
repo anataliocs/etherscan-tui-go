@@ -113,6 +113,24 @@ func (m Model) renderDetails(width int) string {
 		value string
 	}{"Transactions", fmt.Sprintf("%d", len(m.block.Transactions))})
 
+	if m.block.GasUsed != "" && m.block.GasLimit != "" {
+		var gasUsed, gasLimit float64
+		fmt.Sscanf(m.block.GasUsed, "%f", &gasUsed)
+		fmt.Sscanf(m.block.GasLimit, "%f", &gasLimit)
+		if gasLimit > 0 {
+			percentage := (gasUsed / gasLimit) * 100
+			items = append(items, struct {
+				label string
+				value string
+			}{"Gas Used", fmt.Sprintf("%s (%0.2f%%)", m.block.GasUsed, percentage)})
+		} else {
+			items = append(items, struct {
+				label string
+				value string
+			}{"Gas Used", m.block.GasUsed})
+		}
+	}
+
 	for _, item := range items {
 		b.WriteString(labelStyle.Render(item.label+":") + " " + m.ctx.Theme.Value.Render(item.value) + "\n")
 	}

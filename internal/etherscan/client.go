@@ -196,6 +196,8 @@ func (c *Client) FetchBlockDetails(ctx context.Context, blockNumber string) (*Bl
 		Epoch:         epoch,
 		BlockReward:   formatValue(blockReward),
 		Size:          hexToDecimal(block.Size),
+		GasUsed:       hexToDecimal(block.GasUsed),
+		GasLimit:      hexToDecimal(block.GasLimit),
 	}, nil
 }
 

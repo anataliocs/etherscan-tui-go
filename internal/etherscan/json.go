@@ -141,67 +141,39 @@ func extractTransactionReceipt(proxyResp *ProxyResponse[receiptResultData]) (str
 // extractBlockDetails parses block details from a raw proxy response.
 // Parameters:
 //   - proxyResp: The raw response from the Etherscan proxy for the block.
-//   - err: Any error that occurred during the initial request.
 //
 // Returns:
-//   - A struct containing Timestamp and BaseFeePerGas.
+//   - A BlockDetails struct.
 //   - The Unix timestamp as an int64.
 //   - An empty string (kept for signature compatibility).
 //   - An empty string (kept for signature compatibility).
 //   - An error if parsing fails.
-func extractBlockDetails(proxyResp *ProxyResponse[json.RawMessage]) (struct {
-	Timestamp     string   `json:"timestamp"`
-	BaseFeePerGas string   `json:"baseFeePerGas"`
-	Transactions  []string `json:"transactions"`
-	Miner         string   `json:"miner"`
-	Size          string   `json:"size"`
-}, int64, string, string, error) {
+func extractBlockDetails(proxyResp *ProxyResponse[json.RawMessage]) (BlockDetails, int64, string, string, error) {
 	if len(proxyResp.Result) == 0 || string(proxyResp.Result) == "null" {
-		return struct {
-			Timestamp     string   `json:"timestamp"`
-			BaseFeePerGas string   `json:"baseFeePerGas"`
-			Transactions  []string `json:"transactions"`
-			Miner         string   `json:"miner"`
-			Size          string   `json:"size"`
-		}{}, 0, "", "", errors.New("block not found")
+		return BlockDetails{}, 0, "", "", errors.New("block not found")
 	}
 
-	var block struct {
+	type blockResponse struct {
 		Timestamp     string   `json:"timestamp"`
 		BaseFeePerGas string   `json:"baseFeePerGas"`
 		Transactions  []string `json:"transactions"`
 		Miner         string   `json:"miner"`
 		Size          string   `json:"size"`
+		GasUsed       string   `json:"gasUsed"`
+		GasLimit      string   `json:"gasLimit"`
 	}
 
+	var block blockResponse
 	if uerr := json.Unmarshal(proxyResp.Result, &block); uerr != nil {
 		var msg string
 		if json.Unmarshal(proxyResp.Result, &msg) == nil {
-			return struct {
-				Timestamp     string   `json:"timestamp"`
-				BaseFeePerGas string   `json:"baseFeePerGas"`
-				Transactions  []string `json:"transactions"`
-				Miner         string   `json:"miner"`
-				Size          string   `json:"size"`
-			}{}, 0, "", "", fmt.Errorf("Etherscan API error: %s", msg)
+			return BlockDetails{}, 0, "", "", fmt.Errorf("Etherscan API error: %s", msg)
 		}
-		return struct {
-			Timestamp     string   `json:"timestamp"`
-			BaseFeePerGas string   `json:"baseFeePerGas"`
-			Transactions  []string `json:"transactions"`
-			Miner         string   `json:"miner"`
-			Size          string   `json:"size"`
-		}{}, 0, "", "", fmt.Errorf("unexpected response format for block: %w", uerr)
+		return BlockDetails{}, 0, "", "", fmt.Errorf("unexpected response format for block: %w", uerr)
 	}
 
 	if block.Timestamp == "" {
-		return struct {
-			Timestamp     string   `json:"timestamp"`
-			BaseFeePerGas string   `json:"baseFeePerGas"`
-			Transactions  []string `json:"transactions"`
-			Miner         string   `json:"miner"`
-			Size          string   `json:"size"`
-		}{}, 0, "", "", errors.New("timestamp not found in block")
+		return BlockDetails{}, 0, "", "", errors.New("timestamp not found in block")
 	}
 
 	lastTxHash := ""
@@ -213,13 +185,18 @@ func extractBlockDetails(proxyResp *ProxyResponse[json.RawMessage]) (struct {
 	var unixTime int64
 	_, serr := fmt.Sscanf(block.Timestamp, "0x%x", &unixTime)
 	if serr != nil {
-		return struct {
-			Timestamp     string   `json:"timestamp"`
-			BaseFeePerGas string   `json:"baseFeePerGas"`
-			Transactions  []string `json:"transactions"`
-			Miner         string   `json:"miner"`
-			Size          string   `json:"size"`
-		}{}, 0, "", "", fmt.Errorf("failed to parse timestamp: %w", serr)
+		return BlockDetails{}, 0, "", "", fmt.Errorf("failed to parse timestamp: %w", serr)
 	}
-	return block, unixTime, block.Miner, lastTxHash, nil
+
+	details := BlockDetails{
+		Timestamp:     block.Timestamp,
+		BaseFeePerGas: block.BaseFeePerGas,
+		Transactions:  block.Transactions,
+		Miner:         block.Miner,
+		Size:          block.Size,
+		GasUsed:       block.GasUsed,
+		GasLimit:      block.GasLimit,
+	}
+
+	return details, unixTime, block.Miner, lastTxHash, nil
 }

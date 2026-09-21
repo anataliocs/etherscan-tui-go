@@ -25,6 +25,8 @@ func TestBlock(t *testing.T) {
 		Epoch:         "1",
 		BlockReward:   "5 ETH",
 		Size:          "1024",
+		GasUsed:       "500000",
+		GasLimit:      "1000000",
 	}
 
 	t.Run("New", func(t *testing.T) {
@@ -83,6 +85,9 @@ func TestBlock(t *testing.T) {
 		}
 		if !strings.Contains(view, "1024 bytes") {
 			t.Error("view should contain size")
+		}
+		if !strings.Contains(view, "Gas Used") || !strings.Contains(view, "500000 (50.00%)") {
+			t.Error("view should contain gas used and percentage")
 		}
 	})
 

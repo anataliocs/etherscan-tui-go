@@ -50,6 +50,8 @@ type BlockDetails struct {
 	Epoch         string
 	BlockReward   string
 	Size          string
+	GasUsed       string
+	GasLimit      string
 }
 
 // Block represents an Ethereum block as returned and formatted for the TUI.
@@ -65,9 +67,9 @@ type Block struct {
 	Epoch         string
 	BlockReward   string
 	Size          string
+	GasUsed       string
+	GasLimit      string
 }
-
-// Client is a client for the Etherscan API.
 type Client struct {
 	apiKey  string
 	http    *http.Client
