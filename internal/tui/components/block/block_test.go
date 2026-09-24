@@ -86,6 +86,9 @@ func TestBlock(t *testing.T) {
 		if !strings.Contains(view, "1024 bytes") {
 			t.Error("view should contain size")
 		}
+		if !strings.Contains(view, "Gas Limit") || !strings.Contains(view, "1000000") {
+			t.Error("view should contain gas limit")
+		}
 		if !strings.Contains(view, "Gas Used") || !strings.Contains(view, "500000 (50.00%)") {
 			t.Error("view should contain gas used and percentage")
 		}

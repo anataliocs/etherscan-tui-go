@@ -113,6 +113,11 @@ func (m Model) renderDetails(width int) string {
 		value string
 	}{"Transactions", fmt.Sprintf("%d", len(m.block.Transactions))})
 
+	items = append(items, struct {
+		label string
+		value string
+	}{"Gas Limit", m.block.GasLimit})
+
 	if m.block.GasUsed != "" && m.block.GasLimit != "" {
 		var gasUsed, gasLimit float64
 		fmt.Sscanf(m.block.GasUsed, "%f", &gasUsed)
