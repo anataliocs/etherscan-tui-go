@@ -71,6 +71,9 @@ func TestBlock(t *testing.T) {
 		if !strings.Contains(view, "100") {
 			t.Error("view should contain block number")
 		}
+		if !strings.Contains(view, "Base Fee Per Gas") || !strings.Contains(view, "10 gwei") {
+			t.Error("view should contain base fee per gas")
+		}
 		if !strings.Contains(view, "2") { // Number of transactions
 			t.Error("view should contain transaction count")
 		}

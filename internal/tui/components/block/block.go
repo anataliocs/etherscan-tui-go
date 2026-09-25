@@ -69,18 +69,17 @@ func (m Model) renderDetails(width int) string {
 		label string
 		value string
 	}{"Hash", m.block.Hash})
+
 	items = append(items, struct {
 		label string
 		value string
 	}{"Number", m.block.Number})
+
 	items = append(items, struct {
 		label string
 		value string
 	}{"Timestamp", m.block.Timestamp})
-	items = append(items, struct {
-		label string
-		value string
-	}{"Base Fee", m.block.BaseFeePerGas})
+
 	items = append(items, struct {
 		label string
 		value string
@@ -117,6 +116,11 @@ func (m Model) renderDetails(width int) string {
 		label string
 		value string
 	}{"Gas Limit", m.block.GasLimit})
+
+	items = append(items, struct {
+		label string
+		value string
+	}{"Base Fee Per Gas", m.block.BaseFeePerGas})
 
 	if m.block.GasUsed != "" && m.block.GasLimit != "" {
 		var gasUsed, gasLimit float64
