@@ -27,6 +27,7 @@ func TestBlock(t *testing.T) {
 		Size:          "1024",
 		GasUsed:       "500000",
 		GasLimit:      "1000000",
+		ExtraData:     "0x1234",
 	}
 
 	t.Run("New", func(t *testing.T) {
@@ -94,6 +95,9 @@ func TestBlock(t *testing.T) {
 		}
 		if !strings.Contains(view, "Gas Used") || !strings.Contains(view, "500000 (50.00%)") {
 			t.Error("view should contain gas used and percentage")
+		}
+		if !strings.Contains(view, "Extra Data") || !strings.Contains(view, "0x1234") {
+			t.Error("view should contain extra data")
 		}
 	})
 

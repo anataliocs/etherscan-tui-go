@@ -140,6 +140,11 @@ func (m Model) renderDetails(width int) string {
 		}
 	}
 
+	items = append(items, struct {
+		label string
+		value string
+	}{"Extra Data", m.block.ExtraData})
+
 	for _, item := range items {
 		b.WriteString(labelStyle.Render(item.label+":") + " " + m.ctx.Theme.Value.Render(item.value) + "\n")
 	}

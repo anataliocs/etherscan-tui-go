@@ -161,6 +161,7 @@ func extractBlockDetails(proxyResp *ProxyResponse[json.RawMessage]) (BlockDetail
 		Size          string   `json:"size"`
 		GasUsed       string   `json:"gasUsed"`
 		GasLimit      string   `json:"gasLimit"`
+		ExtraData     string   `json:"extraData"`
 	}
 
 	var block blockResponse
@@ -196,6 +197,7 @@ func extractBlockDetails(proxyResp *ProxyResponse[json.RawMessage]) (BlockDetail
 		Size:          block.Size,
 		GasUsed:       block.GasUsed,
 		GasLimit:      block.GasLimit,
+		ExtraData:     block.ExtraData,
 	}
 
 	return details, unixTime, block.Miner, lastTxHash, nil
