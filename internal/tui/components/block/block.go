@@ -122,6 +122,15 @@ func (m Model) renderDetails(width int) string {
 		value string
 	}{"Base Fee Per Gas", m.block.BaseFeePerGas})
 
+	value := m.block.BurntFees
+	if value == "" {
+		value = "0"
+	}
+	items = append(items, struct {
+		label string
+		value string
+	}{"Burnt Fees", value})
+
 	if m.block.GasUsed != "" && m.block.GasLimit != "" {
 		var gasUsed, gasLimit float64
 		fmt.Sscanf(m.block.GasUsed, "%f", &gasUsed)

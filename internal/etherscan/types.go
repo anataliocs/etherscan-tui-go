@@ -71,6 +71,7 @@ type Block struct {
 	GasUsed       string
 	GasLimit      string
 	ExtraData     string
+	BurntFees     string
 }
 type Client struct {
 	apiKey  string

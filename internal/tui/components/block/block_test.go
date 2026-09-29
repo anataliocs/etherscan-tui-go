@@ -28,6 +28,7 @@ func TestBlock(t *testing.T) {
 		GasUsed:       "500000",
 		GasLimit:      "1000000",
 		ExtraData:     "0x1234",
+		BurntFees:     "1 ETH",
 	}
 
 	t.Run("New", func(t *testing.T) {
@@ -98,6 +99,22 @@ func TestBlock(t *testing.T) {
 		}
 		if !strings.Contains(view, "Extra Data") || !strings.Contains(view, "0x1234") {
 			t.Error("view should contain extra data")
+		}
+		if !strings.Contains(view, "Burnt Fees") || !strings.Contains(view, "1 ETH") {
+			t.Error("view should contain burnt fees")
+		}
+	})
+
+	t.Run("View - Empty Burnt Fees", func(t *testing.T) {
+		blockWithNoBurntFees := &etherscan.Block{
+			Hash:      "0x123",
+			Number:    "100",
+			Timestamp: "2023-01-01T00:00:00Z",
+		}
+		m := New(ctx, blockWithNoBurntFees)
+		view := m.View()
+		if !strings.Contains(view, "Burnt Fees") || !strings.Contains(view, "0") {
+			t.Error("view should contain burnt fees with value 0")
 		}
 	})
 
