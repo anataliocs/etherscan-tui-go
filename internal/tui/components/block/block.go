@@ -68,7 +68,7 @@ func (m Model) renderDetails(width int) string {
 	items = append(items, struct {
 		label string
 		value string
-	}{"Hash", m.block.Hash})
+	}{"Block Header Hash", m.block.Hash})
 
 	items = append(items, struct {
 		label string

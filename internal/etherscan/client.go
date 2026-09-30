@@ -187,6 +187,7 @@ func (c *Client) FetchBlockDetails(ctx context.Context, blockNumber string) (*Bl
 	}
 
 	return &BlockDetails{
+		Hash:          block.Hash,
 		Timestamp:     time.Unix(unixTime, 0).UTC().Format(time.RFC3339),
 		BaseFeePerGas: block.BaseFeePerGas,
 		Transactions:  block.Transactions,

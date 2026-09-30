@@ -41,6 +41,7 @@ type Transaction struct {
 
 // BlockDetails represents the details of an Ethereum block.
 type BlockDetails struct {
+	Hash          string
 	Timestamp     string
 	BaseFeePerGas string
 	Transactions  []string

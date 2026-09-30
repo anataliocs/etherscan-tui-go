@@ -158,6 +158,7 @@ func extractBlockDetails(proxyResp *ProxyResponse[json.RawMessage]) (BlockDetail
 		BaseFeePerGas string   `json:"baseFeePerGas"`
 		Transactions  []string `json:"transactions"`
 		Miner         string   `json:"miner"`
+		Hash          string   `json:"hash"`
 		Size          string   `json:"size"`
 		GasUsed       string   `json:"gasUsed"`
 		GasLimit      string   `json:"gasLimit"`
@@ -190,6 +191,7 @@ func extractBlockDetails(proxyResp *ProxyResponse[json.RawMessage]) (BlockDetail
 	}
 
 	details := BlockDetails{
+		Hash:          block.Hash,
 		Timestamp:     block.Timestamp,
 		BaseFeePerGas: block.BaseFeePerGas,
 		Transactions:  block.Transactions,

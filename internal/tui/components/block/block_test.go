@@ -67,8 +67,11 @@ func TestBlock(t *testing.T) {
 		if !strings.Contains(view, "Block Details") {
 			t.Error("view should contain 'Block Details'")
 		}
+		if !strings.Contains(view, "Block Header Hash") {
+			t.Error("view should contain 'Block Header Hash'")
+		}
 		if !strings.Contains(view, "0x123") {
-			t.Error("view should contain hash")
+			t.Error("view should contain hash value")
 		}
 		if !strings.Contains(view, "100") {
 			t.Error("view should contain block number")

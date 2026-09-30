@@ -89,7 +89,7 @@ func detectAndFetchCmd(ctx goctx.Context, hash string, client *etherscan.Client)
 			details, err := client.FetchBlockDetails(ctx, hash)
 			if err == nil {
 				return blockMsg{block: &etherscan.Block{
-					Hash:          "",
+					Hash:          details.Hash,
 					Number:        hash,
 					Timestamp:     details.Timestamp,
 					BaseFeePerGas: details.BaseFeePerGas,
