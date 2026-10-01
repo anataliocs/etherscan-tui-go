@@ -23,7 +23,7 @@ func TestBlock(t *testing.T) {
 		Transactions:  []string{"tx1", "tx2"},
 		Slot:          "10",
 		Epoch:         "1",
-		BlockReward:   "5 ETH",
+		BlockReward:   "0xde0b6b3a7640000",
 		Size:          "1024",
 		GasUsed:       "500000",
 		GasLimit:      "1000000",
@@ -88,7 +88,7 @@ func TestBlock(t *testing.T) {
 		if !strings.Contains(view, "Block Reward") {
 			t.Error("view should contain 'Block Reward'")
 		}
-		if !strings.Contains(view, "5 ETH") {
+		if !strings.Contains(view, "♦ 1 ETH") {
 			t.Error("view should contain block reward value")
 		}
 		if !strings.Contains(view, "1024 bytes") {

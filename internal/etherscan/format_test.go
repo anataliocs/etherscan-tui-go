@@ -15,9 +15,9 @@ func TestFormatValue(t *testing.T) {
 	}
 
 	for _, tt := range tests {
-		got := formatValue(tt.hex)
+		got := FormatValue(tt.hex)
 		if got != tt.expected {
-			t.Errorf("formatValue(%s) = %s; want %s", tt.hex, got, tt.expected)
+			t.Errorf("FormatValue(%s) = %s; want %s", tt.hex, got, tt.expected)
 		}
 	}
 }

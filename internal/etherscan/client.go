@@ -195,7 +195,7 @@ func (c *Client) FetchBlockDetails(ctx context.Context, blockNumber string) (*Bl
 		Status:        "Unfinalized", // Defaulting for now
 		Slot:          slot,
 		Epoch:         epoch,
-		BlockReward:   formatValue(blockReward),
+		BlockReward:   FormatValue(blockReward),
 		Size:          hexToDecimal(block.Size),
 		GasUsed:       hexToDecimal(block.GasUsed),
 		GasLimit:      hexToDecimal(block.GasLimit),

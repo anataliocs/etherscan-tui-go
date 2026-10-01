@@ -7,18 +7,18 @@ import (
 	"strings"
 )
 
-// formatValue converts a hex string (Wei) to a human-readable ETH string.
+// FormatValue converts a hex string (Wei) to a human-readable ETH string.
 // Parameters:
 //   - hexStr: The hex value in Wei.
 //
 // Returns:
 //   - A formatted string with the ETH symbol and value.
-func formatValue(hexStr string) string {
-	eth, s, done := hexToFloat(hexStr, 1e18)
-	if done {
-		return s
+func FormatValue(hexStr string) string {
+	wei := stringToBigInt(hexStr)
+	if wei == nil {
+		return hexStr
 	}
-
+	eth := weiToEth(wei)
 	return fmt.Sprintf("♦ %s ETH", eth.Text('f', -1))
 }
 
@@ -29,13 +29,11 @@ func formatValue(hexStr string) string {
 // Returns:
 //   - The value in Gwei as a decimal string.
 func formatGwei(hexStr string) string {
-	if hexStr == "" {
+	wei := stringToBigInt(hexStr)
+	if wei == nil {
 		return ""
 	}
-	gwei, s, done := hexToFloat(hexStr, 1e9)
-	if done {
-		return s
-	}
+	gwei := weiToGwei(wei)
 	return gwei.Text('f', -1)
 }
 
@@ -46,12 +44,12 @@ func formatGwei(hexStr string) string {
 // Returns:
 //   - A formatted string with gas pump emoji, Gwei value, and ETH value.
 func formatGasPrice(hexStr string) string {
-	gwei, s, done := hexToFloat(hexStr, 1e9)
-	if done {
-		return s
+	wei := stringToBigInt(hexStr)
+	if wei == nil {
+		return ""
 	}
-
-	eth, _, _ := hexToFloat(hexStr, 1e18)
+	gwei := weiToGwei(wei)
+	eth := weiToEth(wei)
 
 	return fmt.Sprintf("⛽ %s Gwei (%s ETH)", gwei.Text('f', -1), eth.Text('f', -1))
 }

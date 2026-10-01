@@ -50,7 +50,7 @@ func buildTransaction(ctx context.Context, hash Hash, proxyResp *ProxyResponse[j
 
 	// Convert hex fields to decimal
 	tx.BlockNumber = hexToDecimal(tx.BlockNumber)
-	tx.Value = formatValue(tx.Value)
+	tx.Value = FormatValue(tx.Value)
 	tx.Gas = hexToDecimal(tx.Gas)
 	tx.GasPrice = formatGasPrice(tx.GasPrice)
 	tx.Nonce = hexToDecimal(tx.Nonce)

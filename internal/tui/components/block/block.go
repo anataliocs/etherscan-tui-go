@@ -93,7 +93,7 @@ func (m Model) renderDetails(width int) string {
 	items = append(items, struct {
 		label string
 		value string
-	}{"Block Reward", m.block.BlockReward})
+	}{"Block Reward", etherscan.FormatValue(m.block.BlockReward)})
 
 	items = append(items, struct {
 		label string

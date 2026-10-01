@@ -52,30 +52,6 @@ func weiToGwei(wei *big.Int) *big.Float {
 	return f.Quo(f, big.NewFloat(weiInGwei))
 }
 
-// hexToFloat converts a hex string to a big.Float using the given divisor.
-// Deprecated: use stringToBigInt and weiToEth/weiToGwei instead.
-func hexToFloat(hexStr string, val float64) (*big.Float, string, bool) {
-	if hexStr == "" {
-		return nil, "", true
-	}
-	if !strings.HasPrefix(hexStr, "0x") {
-		return nil, hexStr, true
-	}
-
-	bi := stringToBigInt(hexStr)
-	if bi == nil {
-		return nil, hexStr, true
-	}
-
-	if hexStr == "0x" {
-		return nil, "0 ETH", true
-	}
-
-	f := new(big.Float).SetInt(bi)
-	f.Quo(f, big.NewFloat(val))
-	return f, "", false
-}
-
 // calculateBurntFees calculates burnt fees in ETH given gas used and base fee.
 func calculateBurntFees(gasUsedHex, baseFeeHex string) string {
 	gu := stringToBigInt(gasUsedHex)
