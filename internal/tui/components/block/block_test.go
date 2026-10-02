@@ -17,7 +17,7 @@ func TestBlock(t *testing.T) {
 		Hash:          "0x123",
 		Number:        "100",
 		Timestamp:     "2023-01-01T00:00:00Z",
-		BaseFeePerGas: "10 gwei",
+		BaseFeePerGas: "0x2540be400",
 		FeeRecipient:  "0xabc",
 		Status:        "Finalized",
 		Transactions:  []string{"tx1", "tx2"},
@@ -76,7 +76,7 @@ func TestBlock(t *testing.T) {
 		if !strings.Contains(view, "100") {
 			t.Error("view should contain block number")
 		}
-		if !strings.Contains(view, "Base Fee Per Gas") || !strings.Contains(view, "10 gwei") {
+		if !strings.Contains(view, "Base Fee Per Gas") || !strings.Contains(view, "0.00000001 ETH") {
 			t.Error("view should contain base fee per gas")
 		}
 		if !strings.Contains(view, "2") { // Number of transactions

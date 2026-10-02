@@ -22,6 +22,21 @@ func FormatValue(hexStr string) string {
 	return fmt.Sprintf("♦ %s ETH", eth.Text('f', -1))
 }
 
+// FormatBaseFee converts a hex string (Wei) to a human-readable ETH string.
+// Parameters:
+//   - hexStr: The hex value in Wei.
+//
+// Returns:
+//   - A formatted string with the ETH symbol and value.
+func FormatBaseFee(hexStr string) string {
+	wei := stringToBigInt(hexStr)
+	if wei == nil {
+		return hexStr
+	}
+	eth := weiToEth(wei)
+	return fmt.Sprintf("%s ETH", eth.Text('f', -1))
+}
+
 // formatGwei converts a hex string (Wei) to Gwei as a string.
 // Parameters:
 //   - hexStr: The hex value in Wei.

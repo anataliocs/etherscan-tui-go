@@ -22,6 +22,24 @@ func TestFormatValue(t *testing.T) {
 	}
 }
 
+func TestFormatBaseFee(t *testing.T) {
+	tests := []struct {
+		hex      string
+		expected string
+	}{
+		{"0x2540be400", "0.00000001 ETH"},
+		{"0x0", "0 ETH"},
+		{"", ""},
+	}
+
+	for _, tt := range tests {
+		got := FormatBaseFee(tt.hex)
+		if got != tt.expected {
+			t.Errorf("FormatBaseFee(%s) = %s; want %s", tt.hex, got, tt.expected)
+		}
+	}
+}
+
 func TestFormatGwei(t *testing.T) {
 	tests := []struct {
 		hex  string

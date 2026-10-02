@@ -120,7 +120,7 @@ func (m Model) renderDetails(width int) string {
 	items = append(items, struct {
 		label string
 		value string
-	}{"Base Fee Per Gas", m.block.BaseFeePerGas})
+	}{"Base Fee Per Gas", etherscan.FormatBaseFee(m.block.BaseFeePerGas)})
 
 	value := m.block.BurntFees
 	if value == "" {
