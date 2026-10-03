@@ -51,9 +51,9 @@ func TestFormatGwei(t *testing.T) {
 	}
 
 	for _, tt := range tests {
-		got := formatGwei(tt.hex)
+		got := FormatGwei(tt.hex)
 		if got != tt.want {
-			t.Errorf("formatGwei(%s) = %s; want %s", tt.hex, got, tt.want)
+			t.Errorf("FormatGwei(%s) = %s; want %s", tt.hex, got, tt.want)
 		}
 	}
 }

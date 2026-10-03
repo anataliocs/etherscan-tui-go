@@ -117,10 +117,13 @@ func (m Model) renderDetails(width int) string {
 		value string
 	}{"Gas Limit", m.block.GasLimit})
 
+	baseFee := etherscan.FormatBaseFee(m.block.BaseFeePerGas)
+	gwei := etherscan.FormatGwei(m.block.BaseFeePerGas)
+	baseFeeValue := fmt.Sprintf("%s %s", baseFee, m.ctx.Theme.LightGray.Render("("+gwei+" Gwei)"))
 	items = append(items, struct {
 		label string
 		value string
-	}{"Base Fee Per Gas", etherscan.FormatBaseFee(m.block.BaseFeePerGas)})
+	}{"Base Fee Per Gas", baseFeeValue})
 
 	value := m.block.BurntFees
 	if value == "" {

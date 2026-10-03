@@ -37,13 +37,13 @@ func FormatBaseFee(hexStr string) string {
 	return fmt.Sprintf("%s ETH", eth.Text('f', -1))
 }
 
-// formatGwei converts a hex string (Wei) to Gwei as a string.
+// FormatGwei converts a hex string (Wei) to Gwei as a string.
 // Parameters:
 //   - hexStr: The hex value in Wei.
 //
 // Returns:
 //   - The value in Gwei as a decimal string.
-func formatGwei(hexStr string) string {
+func FormatGwei(hexStr string) string {
 	wei := stringToBigInt(hexStr)
 	if wei == nil {
 		return ""

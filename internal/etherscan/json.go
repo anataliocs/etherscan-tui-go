@@ -81,7 +81,7 @@ func buildTransaction(ctx context.Context, hash Hash, proxyResp *ProxyResponse[j
 		details, err := c.FetchBlockDetails(ctx, hexBlockNumber)
 		if err == nil {
 			tx.Timestamp = details.Timestamp
-			tx.BaseFeePerGas = formatGwei(details.BaseFeePerGas)
+			tx.BaseFeePerGas = FormatGwei(details.BaseFeePerGas)
 			tx.BurntFees = calculateBurntFees(gasUsed, details.BaseFeePerGas)
 			tx.BlockTransactionCount = fmt.Sprintf("%d", len(details.Transactions))
 		} else {
@@ -90,10 +90,10 @@ func buildTransaction(ctx context.Context, hash Hash, proxyResp *ProxyResponse[j
 	}
 
 	if tx.MaxFeePerGas != "" {
-		tx.MaxFeePerGas = formatGwei(tx.MaxFeePerGas)
+		tx.MaxFeePerGas = FormatGwei(tx.MaxFeePerGas)
 	}
 	if tx.MaxPriorityFeePerGas != "" {
-		tx.MaxPriorityFeePerGas = formatGwei(tx.MaxPriorityFeePerGas)
+		tx.MaxPriorityFeePerGas = FormatGwei(tx.MaxPriorityFeePerGas)
 	}
 
 	// For legacy transactions, gas price = max fee = max priority fee (informally)
