@@ -140,10 +140,11 @@ func (m Model) renderDetails(width int) string {
 		fmt.Sscanf(m.block.GasLimit, "%f", &gasLimit)
 		if gasLimit > 0 {
 			percentage := (gasUsed / gasLimit) * 100
+			percentageValue := m.ctx.Theme.LightGray.Render(fmt.Sprintf("(%0.2f%%)", percentage))
 			items = append(items, struct {
 				label string
 				value string
-			}{"Gas Used", fmt.Sprintf("%s (%0.2f%%)", m.block.GasUsed, percentage)})
+			}{"Gas Used", fmt.Sprintf("%s %s", m.block.GasUsed, percentageValue)})
 		} else {
 			items = append(items, struct {
 				label string
