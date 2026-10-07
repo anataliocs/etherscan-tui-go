@@ -128,4 +128,17 @@ func TestBlock(t *testing.T) {
 			t.Error("view should be empty for nil block")
 		}
 	})
+
+	t.Run("View - Extra Data", func(t *testing.T) {
+		blockWithExtraData := &etherscan.Block{
+			Hash:      "0x123",
+			Number:    "100",
+			ExtraData: "0x48656c6c6f", // "Hello"
+		}
+		m := New(ctx, blockWithExtraData)
+		view := m.View()
+		if !strings.Contains(view, "Hello") || !strings.Contains(view, "0x48656c6c6f") {
+			t.Error("view should contain decoded extra data and raw hex")
+		}
+	})
 }

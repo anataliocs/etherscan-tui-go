@@ -1,4 +1,4 @@
-// Package block provides a component for displaying detailed information about an Ethereum block.
+// Package block provides a component for displaying detailed information about an Ethereum block...
 package block
 
 import (
@@ -153,10 +153,18 @@ func (m Model) renderDetails(width int) string {
 		}
 	}
 
+	extraData := m.block.ExtraData
+	decoded, ok := decodeExtraData(extraData)
+	var extraDataValue string
+	if ok {
+		extraDataValue = fmt.Sprintf("%s %s", decoded, m.ctx.Theme.LightGray.Render(extraData))
+	} else {
+		extraDataValue = extraData
+	}
 	items = append(items, struct {
 		label string
 		value string
-	}{"Extra Data", m.block.ExtraData})
+	}{"Extra Data", extraDataValue})
 
 	for _, item := range items {
 		b.WriteString(labelStyle.Render(item.label+":") + " " + m.ctx.Theme.Value.Render(item.value) + "\n")
