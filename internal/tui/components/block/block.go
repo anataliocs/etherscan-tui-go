@@ -157,7 +157,7 @@ func (m Model) renderDetails(width int) string {
 	decoded, ok := decodeExtraData(extraData)
 	var extraDataValue string
 	if ok {
-		extraDataValue = fmt.Sprintf("%s %s", decoded, m.ctx.Theme.LightGray.Render(extraData))
+		extraDataValue = fmt.Sprintf("%s %s", decoded, m.ctx.Theme.LightGray.Render(fmt.Sprintf("(Hex: %s)", extraData)))
 	} else {
 		extraDataValue = extraData
 	}
