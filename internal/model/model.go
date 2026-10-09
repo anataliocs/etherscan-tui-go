@@ -103,6 +103,7 @@ func detectAndFetchCmd(ctx goctx.Context, hash string, client *etherscan.Client)
 					GasUsed:       details.GasUsed,
 					GasLimit:      details.GasLimit,
 					ExtraData:     details.ExtraData,
+					ParentHash:    details.ParentHash,
 				}}
 			}
 		}

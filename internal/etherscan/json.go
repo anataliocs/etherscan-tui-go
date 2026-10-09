@@ -163,6 +163,7 @@ func extractBlockDetails(proxyResp *ProxyResponse[json.RawMessage]) (BlockDetail
 		GasUsed       string   `json:"gasUsed"`
 		GasLimit      string   `json:"gasLimit"`
 		ExtraData     string   `json:"extraData"`
+		ParentHash    string   `json:"parentHash"`
 	}
 
 	var block blockResponse
@@ -200,6 +201,7 @@ func extractBlockDetails(proxyResp *ProxyResponse[json.RawMessage]) (BlockDetail
 		GasUsed:       block.GasUsed,
 		GasLimit:      block.GasLimit,
 		ExtraData:     block.ExtraData,
+		ParentHash:    block.ParentHash,
 	}
 
 	return details, unixTime, block.Miner, lastTxHash, nil

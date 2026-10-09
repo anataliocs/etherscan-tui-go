@@ -54,6 +54,7 @@ type BlockDetails struct {
 	GasUsed       string
 	GasLimit      string
 	ExtraData     string
+	ParentHash    string
 }
 
 // Block represents an Ethereum block as returned and formatted for the TUI.
@@ -73,6 +74,7 @@ type Block struct {
 	GasLimit      string
 	ExtraData     string
 	BurntFees     string
+	ParentHash    string
 }
 type Client struct {
 	apiKey  string
