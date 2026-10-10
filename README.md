@@ -11,7 +11,7 @@
 # Ethereum Transaction Explorer
 
 A terminal(TUI) Ethereum transaction explorer built with Go and
-the [Bubble Tea](https://github.com/charmbracelet/bubbletea) TUI framework. Fetch, display and explore details for any Ethereum transaction hash 
+the [Bubble Tea](https://github.com/charmbracelet/bubbletea) TUI framework part of https://charm.land/. Fetch, display and explore details for any Ethereum transaction hash 
 using the Etherscan API V2 all in your terminal.
 
 Built with `bubbletea`, `bubbles`, and `lipgloss`.
