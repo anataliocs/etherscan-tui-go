@@ -110,6 +110,9 @@ func TestBlock(t *testing.T) {
 		if !strings.Contains(view, "Burnt Fees") || !strings.Contains(view, "1 ETH") {
 			t.Error("view should contain burnt fees")
 		}
+		if !strings.Contains(view, "2023-01-01T00:00:00Z (") || !strings.Contains(view, "s ago)") {
+			t.Error("view should contain timestamp with elapsed time")
+		}
 	})
 
 	t.Run("View - Empty Burnt Fees", func(t *testing.T) {

@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"math/big"
 	"strings"
+	"time"
 )
 
 // FormatValue converts a hex string (Wei) to a human-readable ETH string.
@@ -139,4 +140,24 @@ func formatTransactionType(hexStr string) string {
 //   - The latest block number as a decimal string.
 func FormatLatestBlock(hexStr string) string {
 	return hexToDecimal(hexStr)
+}
+
+// FormatAge formats an elapsed duration as a human-readable "ago" string.
+// Parameters:
+//   - d: The elapsed duration.
+//
+// Returns:
+//   - A string such as "1h 2m 3s ago", "2m 3s ago", or "3s ago".
+func FormatAge(d time.Duration) string {
+	h := int(d.Hours())
+	m := int(d.Minutes()) % 60
+	s := int(d.Seconds()) % 60
+	switch {
+	case h > 0:
+		return fmt.Sprintf("%dh %dm %ds ago", h, m, s)
+	case m > 0:
+		return fmt.Sprintf("%dm %ds ago", m, s)
+	default:
+		return fmt.Sprintf("%ds ago", s)
+	}
 }

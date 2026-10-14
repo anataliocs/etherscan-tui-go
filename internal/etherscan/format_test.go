@@ -2,6 +2,7 @@ package etherscan
 
 import (
 	"testing"
+	"time"
 )
 
 func TestFormatValue(t *testing.T) {
@@ -121,5 +122,24 @@ func TestFormatLatestBlock(t *testing.T) {
 	got := FormatLatestBlock("0xa")
 	if got != "10" {
 		t.Errorf("FormatLatestBlock(0xa) = %s; want 10", got)
+	}
+}
+
+func TestFormatAge(t *testing.T) {
+	tests := []struct {
+		d        time.Duration
+		expected string
+	}{
+		{3 * time.Second, "3s ago"},
+		{2*time.Minute + 3*time.Second, "2m 3s ago"},
+		{time.Hour + 2*time.Minute + 3*time.Second, "1h 2m 3s ago"},
+		{26 * time.Hour, "26h 0m 0s ago"},
+	}
+
+	for _, tt := range tests {
+		got := FormatAge(tt.d)
+		if got != tt.expected {
+			t.Errorf("FormatAge(%v) = %s; want %s", tt.d, got, tt.expected)
+		}
 	}
 }

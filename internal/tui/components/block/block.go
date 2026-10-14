@@ -6,6 +6,7 @@ import (
 	"awesomeProject/internal/tui/context"
 	"fmt"
 	"strings"
+	"time"
 
 	tea "github.com/charmbracelet/bubbletea"
 )
@@ -80,10 +81,14 @@ func (m Model) renderDetails(width int) string {
 		value string
 	}{"Number", m.block.Number})
 
+	timestampValue := m.block.Timestamp
+	if t, err := time.Parse(time.RFC3339, m.block.Timestamp); err == nil {
+		timestampValue = fmt.Sprintf("%s %s", m.block.Timestamp, m.ctx.Theme.DarkGray.Render("("+etherscan.FormatAge(time.Since(t))+")"))
+	}
 	items = append(items, struct {
 		label string
 		value string
-	}{"Timestamp", m.block.Timestamp})
+	}{"Timestamp", timestampValue})
 
 	items = append(items, struct {
 		label string

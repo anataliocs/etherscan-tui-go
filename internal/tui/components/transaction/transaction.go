@@ -324,19 +324,7 @@ func (m Model) renderBlockNumber(tx *etherscan.Transaction, value string, style 
 func (m Model) renderTimestamp(value string, style lipgloss.Style) string {
 	t, err := time.Parse(time.RFC3339, value)
 	if err == nil {
-		duration := time.Since(t)
-		h := int(duration.Hours())
-		mMins := int(duration.Minutes()) % 60
-		s := int(duration.Seconds()) % 60
-		var agoStr string
-		switch {
-		case h > 0:
-			agoStr = fmt.Sprintf(" (%dh %dm %ds ago)", h, mMins, s)
-		case mMins > 0:
-			agoStr = fmt.Sprintf(" (%dm %ds ago)", mMins, s)
-		default:
-			agoStr = fmt.Sprintf(" (%ds ago)", s)
-		}
+		agoStr := " (" + etherscan.FormatAge(time.Since(t)) + ")"
 		return style.Render(value) + " " + m.ctx.Theme.DarkGray.Render(agoStr)
 	}
 	return style.Render(value)
