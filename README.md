@@ -139,6 +139,13 @@ Release a new version
 goreleaser release --snapshot --clean
 ```
 
+Tag on git
+
+```bash
+git tag -a v0.0.1 -m "Initial Alpha release"
+git push origin v0.0.1
+```
+
 ## Maintained by:
 
 [Hella Web3 Labs](https://hella.website/)
