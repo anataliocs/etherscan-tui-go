@@ -4,7 +4,7 @@ Guidance for Claude Code when working in this repository. Adapted from `.junie/g
 
 ## Project Overview
 
-A Bubble Tea TUI for exploring Ethereum blocks and transactions via the Etherscan API. Go 1.26 (CI pins `1.26.9`).
+A Bubble Tea TUI for exploring Ethereum blocks and transactions via the Etherscan API. Go 1.26 (CI pins `1.26.10`).
 
 ```
 cmd/ethereum-explorer/   # entry point
