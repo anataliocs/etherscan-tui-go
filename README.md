@@ -129,6 +129,16 @@ go test ./internal/etherscan/...
 - `.env`: Local environment variables (ignored by git).
 - `main.go`: Deprecated entry point.
 
+## Release
+
+Ensure `GITHUB_TOKEN=` is set in your `.zshrc`
+
+Release a new version
+
+```bash
+goreleaser release --snapshot --clean
+```
+
 ## Maintained by:
 
 [Hella Web3 Labs](https://hella.website/)
